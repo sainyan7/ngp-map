@@ -1,0 +1,40 @@
+/* Leaflet CSS must come before Tailwind base to avoid style conflicts */
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure the map takes full height of its container */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* City label tooltips — no background box, text only */
+.city-label {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #fff, 0 -1px 2px #fff, 1px 0 2px #fff, -1px 0 2px #fff;
+}
+.city-label::before {
+  display: none !important;
+}
+
+
+/* Fix z-index issues between Leaflet popups and Tailwind */
+.leaflet-pane {
+  z-index: 10;
+}
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20;
+}
+.leaflet-popup {
+  z-index: 30;
+}

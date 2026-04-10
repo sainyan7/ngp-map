@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isFirebaseAuthed() {
+      return request.auth != null;
+    }
+    function isAuthenticated() {
+      return isFirebaseAuthed() &&
+        get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.authenticated == true;
+    }
+    function isAdmin() {
+      return isFirebaseAuthed() &&
+        get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.admin == true;
+    }
+
+    match /settings/{doc} {
+      allow read: if isFirebaseAuthed();
+      allow write: if isAdmin();
+    }
+    match /userRoles/{uid} {
+      allow read, write: if isFirebaseAuthed() && request.auth.uid == uid;
+    }
+    match /mapVersions/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /features/{doc} {
+      allow read, write: if isAuthenticated();
+    }
+    match /factions/{doc} {
+      allow read, write: if isAuthenticated();
+      match /diplomatic/{targetId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    match /events/{doc} {
+      allow read, write: if isAuthenticated();
+    }
+    match /cities/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    match /roads/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
