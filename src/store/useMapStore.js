@@ -104,7 +104,7 @@ const useMapStore = create((set) => ({
   setCurrentTurn: (turn) => set({ currentTurn: turn }),
 
   // ── Distance measurement ─────────────────────────────────────────────────
-  kmPerUnit: 100,
+  kmPerUnit: 1.45,
   setKmPerUnit: (v) => set({ kmPerUnit: v }),
   measureStart: null,
   setMeasureStart: (pt) => set({ measureStart: pt }),
