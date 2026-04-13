@@ -129,7 +129,8 @@ export default function DrawingTools() {
 
   useMapEvents({
     click(e) {
-      if (drawingMode === 'select' || drawingMode === 'delete') return;
+      if (drawingMode === 'select' || drawingMode === 'delete' ||
+          drawingMode === 'add_city' || drawingMode === 'add_label' || drawingMode === 'add_facility') return;
 
       if (drawingMode === 'marker') {
         // Store as plain object to avoid Firestore's nested-array restriction

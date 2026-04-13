@@ -27,6 +27,76 @@
 }
 
 
+/* Ensure tilted / oversized DivIcon content is not clipped */
+.leaflet-marker-pane,
+.leaflet-marker-icon {
+  overflow: visible !important;
+}
+
+/* Place name labels — clickable text on map */
+.pn-label {
+  display: inline-block;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translate(4px, -50%);
+  border-radius: 3px;
+  padding: 1px 3px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 -1px 3px rgba(0,0,0,0.95),
+               1px 0 3px rgba(0,0,0,0.95), -1px 0 3px rgba(0,0,0,0.95),
+               0 0 4px rgba(0,0,0,0.7);
+  transition: background-color 0.15s;
+}
+.pn-label:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Ruby (furigana) styling */
+ruby { ruby-align: center; }
+rt {
+  font-size: 0.55em;
+  letter-spacing: 0;
+  font-style: normal;
+  font-weight: normal;
+  text-shadow: none;
+}
+
+/* Arch SVG place name labels — pointer-events for click */
+.pn-arch-svg {
+  cursor: pointer;
+  overflow: visible;
+}
+.pn-arch-svg:hover text { opacity: 0.75; }
+
+/* Search result highlight — pulsing amber ring */
+.search-highlight-icon {
+  background: transparent !important;
+  border: none !important;
+  pointer-events: none;
+}
+.search-highlight-ring {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 3px solid #F59E0B;
+  box-sizing: border-box;
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Mobile: enlarge Leaflet zoom controls for touch */
+@media (max-width: 768px) {
+  .leaflet-control-zoom a {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 20px !important;
+  }
+}
+
 /* Fix z-index issues between Leaflet popups and Tailwind */
 .leaflet-pane {
   z-index: 10;

@@ -1,48 +1,90 @@
 import { useState, useEffect } from 'react';
 import useMapStore from '../../store/useMapStore';
-import { updateCity, deleteCity } from '../../firebase/cities';
+import { addFacility, updateFacility, deleteFacility } from '../../firebase/facilities';
 
 const TYPE_OPTIONS = [
-  { value: 'capital',       label: '首都／総督府所在地' },
-  { value: 'major_city',    label: '100万人以上の州都' },
-  { value: 'state_capital', label: '100万人未満の州都' },
-  { value: 'city',          label: 'その他の都市' },
+  { value: 'airport',  label: '空港／飛行場' },
+  { value: 'port',     label: '港' },
+  { value: 'military', label: '軍事基地' },
+  { value: 'other',    label: 'その他の重要施設' },
 ];
 
-// Type indicator dot
-const TYPE_COLORS = {
-  capital:       '#EF4444',
-  major_city:    '#DC2626',
-  state_capital: '#3B82F6',
-  city:          '#D1D5DB',
+const SUBTYPE_OPTIONS = {
+  airport:  [
+    { value: 'international',  label: '国際空港' },
+    { value: 'regional',       label: '地方空港' },
+    { value: 'other_airfield', label: 'その他の飛行場' },
+  ],
+  port: [
+    { value: 'major_port',    label: '重要港' },
+    { value: 'regional_port', label: '地方港' },
+  ],
+  military: [
+    { value: 'garrison',       label: '駐屯地' },
+    { value: 'air_base',       label: '航空基地' },
+    { value: 'naval_base',     label: '軍港' },
+    { value: 'other_military', label: 'その他の軍事施設' },
+  ],
+  other: [],
 };
 
-export default function CityEditPopup() {
+const DEFAULT_SUBTYPE = {
+  airport:  'international',
+  port:     'major_port',
+  military: 'garrison',
+  other:    null,
+};
+
+const TYPE_COLORS = {
+  airport:  '#3B82F6',
+  port:     '#0D9488',
+  military: '#4D7C0F',
+  other:    '#7C3AED',
+};
+
+export default function FacilityEditPopup() {
   const {
-    selectedCity, clearSelectedCity,
-    cityDragEnabled, setCityDragEnabled,
+    selectedFacility, clearSelectedFacility,
+    facilityDragEnabled, setFacilityDragEnabled,
   } = useMapStore();
-  const [form, setForm]     = useState({ name: '', type: 'city', ruby: '' });
+  const [form, setForm]     = useState({ name: '', type: 'airport', subtype: 'international', ruby: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
 
-  // Reset form and disable drag whenever a new city is selected
   useEffect(() => {
-    if (selectedCity) {
-      setForm({ name: selectedCity.name || '', type: selectedCity.type || 'city', ruby: selectedCity.ruby || '' });
+    if (selectedFacility) {
+      setForm({
+        name:    selectedFacility.name    || '',
+        type:    selectedFacility.type    || 'airport',
+        subtype: selectedFacility.subtype ?? DEFAULT_SUBTYPE[selectedFacility.type ?? 'airport'],
+        ruby:    selectedFacility.ruby    || '',
+      });
       setError('');
-      setCityDragEnabled(false);
+      setFacilityDragEnabled(false);
     }
-  }, [selectedCity?.id]);
+  }, [selectedFacility?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!selectedCity) return null;
+  if (!selectedFacility) return null;
+
+  const handleTypeChange = (newType) => {
+    setForm((f) => ({
+      ...f,
+      type:    newType,
+      subtype: DEFAULT_SUBTYPE[newType],
+    }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
     setError('');
     try {
-      await updateCity(selectedCity.id, { name: form.name, type: form.type, ruby: form.ruby });
-      clearSelectedCity();
+      const data = { name: form.name, type: form.type, subtype: form.subtype ?? null, ruby: form.ruby };
+      if (selectedFacility.id) {
+        await updateFacility(selectedFacility.id, data);
+      } else {
+        await addFacility({ lat: selectedFacility.lat, lng: selectedFacility.lng, ...data });
+      }
+      clearSelectedFacility();
     } catch (e) {
       setError('保存に失敗しました: ' + (e.code ?? e.message));
     } finally {
@@ -51,17 +93,19 @@ export default function CityEditPopup() {
   };
 
   const handleDelete = async () => {
-    const label = selectedCity.name || '名称未設定';
+    const label = selectedFacility.name || '名称未設定';
+    if (!selectedFacility.id) { clearSelectedFacility(); return; }
     if (!window.confirm(`「${label}」を削除しますか？`)) return;
     try {
-      await deleteCity(selectedCity.id);
-      clearSelectedCity();
+      await deleteFacility(selectedFacility.id);
+      clearSelectedFacility();
     } catch (e) {
       setError('削除に失敗しました: ' + (e.code ?? e.message));
     }
   };
 
   const dotColor = TYPE_COLORS[form.type] ?? '#9CA3AF';
+  const subtypeOptions = SUBTYPE_OPTIONS[form.type] ?? [];
 
   return (
     <div className="absolute bottom-14 left-2 right-2
@@ -75,10 +119,10 @@ export default function CityEditPopup() {
           style={{ backgroundColor: dotColor }}
         />
         <h3 className="font-bold text-sm flex-1 truncate">
-          {selectedCity.name || '名称未設定'}
+          {selectedFacility.name || '名称未設定'}
         </h3>
         <button
-          onClick={clearSelectedCity}
+          onClick={clearSelectedFacility}
           className="text-gray-400 hover:text-white text-lg leading-none ml-1"
         >
           ×
@@ -87,13 +131,13 @@ export default function CityEditPopup() {
 
       {/* Form body */}
       <div className="px-4 py-3 space-y-3">
-        {/* City name */}
+        {/* Facility name */}
         <div>
-          <label className="text-xs text-gray-400">都市名</label>
+          <label className="text-xs text-gray-400">施設名</label>
           <input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="都市名を入力"
+            placeholder="施設名を入力"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSave()}
             className="w-full bg-gray-700 rounded px-2 py-1.5 text-sm mt-0.5
@@ -118,7 +162,7 @@ export default function CityEditPopup() {
           <label className="text-xs text-gray-400">種別</label>
           <select
             value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
+            onChange={(e) => handleTypeChange(e.target.value)}
             className="w-full bg-gray-700 rounded px-2 py-1.5 text-sm mt-0.5
                        focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
@@ -128,19 +172,36 @@ export default function CityEditPopup() {
           </select>
         </div>
 
+        {/* Subtype selector — hidden for 'other' */}
+        {subtypeOptions.length > 0 && (
+          <div>
+            <label className="text-xs text-gray-400">詳細種別</label>
+            <select
+              value={form.subtype ?? ''}
+              onChange={(e) => setForm({ ...form, subtype: e.target.value })}
+              className="w-full bg-gray-700 rounded px-2 py-1.5 text-sm mt-0.5
+                         focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {subtypeOptions.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Position drag toggle */}
         <div>
           <button
-            onClick={() => setCityDragEnabled(!cityDragEnabled)}
+            onClick={() => setFacilityDragEnabled(!facilityDragEnabled)}
             className={`w-full rounded px-2 py-1.5 text-sm font-medium transition-colors border
-              ${cityDragEnabled
+              ${facilityDragEnabled
                 ? 'bg-amber-500 hover:bg-amber-600 text-black border-amber-400'
                 : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border-gray-600'
               }`}
           >
-            {cityDragEnabled ? '📍 ドラッグ有効' : '位置を移動'}
+            {facilityDragEnabled ? '📍 ドラッグ有効' : '位置を移動'}
           </button>
-          {cityDragEnabled && (
+          {facilityDragEnabled && (
             <p className="text-xs text-amber-400 mt-1 text-center">
               地図上でドラッグして位置を変更
             </p>
@@ -165,14 +226,13 @@ export default function CityEditPopup() {
             {saving ? '保存中...' : '保存'}
           </button>
           <button
-            onClick={clearSelectedCity}
+            onClick={clearSelectedFacility}
             className="flex-1 bg-gray-600 hover:bg-gray-700 rounded-lg py-1.5 text-sm transition-colors"
           >
             キャンセル
           </button>
         </div>
 
-        {/* Delete — visually de-emphasized to reduce accidental clicks */}
         <button
           onClick={handleDelete}
           className="w-full py-1.5 text-sm text-red-400 hover:text-red-300

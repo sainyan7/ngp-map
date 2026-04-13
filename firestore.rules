@@ -41,9 +41,21 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
+    match /placeNames/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    match /facilities/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
     match /roads/{doc} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+    }
+    match /whiteboard/{doc} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
   }
 }

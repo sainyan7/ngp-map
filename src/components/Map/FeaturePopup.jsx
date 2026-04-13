@@ -53,8 +53,10 @@ export default function FeaturePopup() {
 
   return (
     <div
-      className="absolute top-4 right-4 z-[400] bg-gray-800 text-white rounded-xl
-                 shadow-2xl w-72 p-4 border border-gray-700"
+      className="absolute bottom-14 left-2 right-2
+                 md:bottom-auto md:top-4 md:right-4 md:left-auto md:w-72
+                 z-[400] bg-gray-800 text-white rounded-xl
+                 shadow-2xl p-4 border border-gray-700"
     >
       {/* Close button */}
       <button

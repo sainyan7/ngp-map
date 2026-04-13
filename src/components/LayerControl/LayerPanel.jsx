@@ -2,19 +2,20 @@ import useMapStore from '../../store/useMapStore';
 
 const LAYERS = [
   { key: 'city',           label: '都市・首都',      color: '#EF4444' },
+  { key: 'place_names',    label: '地名',             color: '#93C5FD' },
+  { key: 'facilities',     label: '重要施設',         color: '#F59E0B' },
   { key: 'highway',        label: '高速道路',         color: '#F97316' },
   { key: 'highspeed_rail', label: '高速鉄道',         color: '#EC4899' },
   { key: 'railway',        label: '幹線鉄道',         color: '#1F2937' },
-  { key: 'border',         label: '州境線',           color: '#6B7280' },
-  { key: 'diplomatic',     label: '外交関係ライン',   color: '#3B82F6' },
-  { key: 'features',       label: '地物（カスタム）', color: '#8B5CF6' },
+  { key: 'border',          label: '州境線',           color: '#6B7280' },
+  { key: 'regional_border', label: '地方境',           color: '#D97706' },
 ];
 
-export default function LayerPanel() {
-  const { layers, toggleLayer, overlayOpacity, setOverlayOpacity } = useMapStore();
+export default function LayerPanel({ open }) {
+  const { layers, toggleLayer, overlayOpacity, setOverlayOpacity, showRuby, toggleRuby, showFacilityLabel, toggleFacilityLabel, kmPerUnit, setKmPerUnit } = useMapStore();
 
   return (
-    <div className="w-44 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0">
+    <div className={`${open ? 'flex' : 'hidden'} md:flex w-44 bg-gray-800 border-r border-gray-700 flex-col shrink-0`}>
       <div className="px-3 py-2 border-b border-gray-700">
         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">レイヤー</h2>
       </div>
@@ -41,6 +42,50 @@ export default function LayerPanel() {
           </li>
         ))}
       </ul>
+
+      {/* 表示オプション */}
+      <div className="px-3 py-2 border-t border-gray-700 space-y-1.5">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showRuby}
+            onChange={toggleRuby}
+            className="w-3.5 h-3.5 rounded cursor-pointer"
+            style={{ accentColor: '#93C5FD' }}
+          />
+          <span className="text-xs text-gray-300 select-none">ルビ表示</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showFacilityLabel}
+            onChange={toggleFacilityLabel}
+            className="w-3.5 h-3.5 rounded cursor-pointer"
+            style={{ accentColor: '#F59E0B' }}
+          />
+          <span className="text-xs text-gray-300 select-none">施設名表示</span>
+        </label>
+      </div>
+
+      {/* 距離計測スケール設定 */}
+      <div className="px-3 py-2 border-t border-gray-700">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-gray-400">計測スケール</span>
+          <span className="text-xs text-gray-500">units/km</span>
+        </div>
+        <input
+          type="number"
+          min={1}
+          max={99999}
+          value={kmPerUnit}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (v > 0) setKmPerUnit(v);
+          }}
+          className="w-full bg-gray-700 text-gray-200 text-xs rounded px-2 py-1
+                     border border-gray-600 focus:outline-none focus:border-blue-500"
+        />
+      </div>
 
       {/* オーバーレイ濃度スライダー */}
       <div className="px-3 py-3 border-t border-gray-700">
