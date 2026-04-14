@@ -127,6 +127,7 @@ export default function PlaceNameEditPopup() {
     selectedPlaceName, clearSelectedPlaceName,
     placeNameDragEnabled, setPlaceNameDragEnabled,
     showRuby,
+    pushHistory,
   } = useMapStore();
   const [form, setForm]     = useState({
     name: '', category: 'other',
@@ -168,9 +169,31 @@ export default function PlaceNameEditPopup() {
         letterSpacing: form.letterSpacing,
       };
       if (selectedPlaceName.id) {
-        await updatePlaceName(selectedPlaceName.id, data);
+        const id = selectedPlaceName.id;
+        const before = {
+          name: selectedPlaceName.name ?? '', category: selectedPlaceName.category ?? 'other',
+          layout: selectedPlaceName.layout ?? 'horizontal', archHeight: selectedPlaceName.archHeight ?? 15,
+          archUp: selectedPlaceName.archUp !== false, tilt: selectedPlaceName.tilt ?? 0,
+          ruby: selectedPlaceName.ruby ?? '', letterSpacing: selectedPlaceName.letterSpacing ?? '',
+        };
+        await updatePlaceName(id, data);
+        pushHistory({
+          label: '地名編集',
+          undoFn: async () => { await updatePlaceName(id, before); },
+          redoFn:  async () => { await updatePlaceName(id, data); },
+        });
       } else {
-        await addPlaceName({ lat: selectedPlaceName.lat, lng: selectedPlaceName.lng, ...data });
+        const { lat, lng } = selectedPlaceName;
+        const newId = await addPlaceName({ lat, lng, ...data });
+        const ref = { id: newId };
+        pushHistory({
+          label: '地名追加',
+          undoFn: async () => { await deletePlaceName(ref.id); },
+          redoFn:  async () => {
+            const id = await addPlaceName({ lat, lng, ...data });
+            ref.id = id;
+          },
+        });
       }
       clearSelectedPlaceName();
     } catch (e) {
@@ -185,7 +208,23 @@ export default function PlaceNameEditPopup() {
     const label = selectedPlaceName.name || '名称未設定';
     if (!window.confirm(`「${label}」を削除しますか？`)) return;
     try {
-      await deletePlaceName(selectedPlaceName.id);
+      const snapshot = { ...selectedPlaceName };
+      await deletePlaceName(snapshot.id);
+      const ref = { id: snapshot.id };
+      pushHistory({
+        label: '地名削除',
+        undoFn: async () => {
+          const newId = await addPlaceName({
+            lat: snapshot.lat, lng: snapshot.lng,
+            name: snapshot.name ?? '', category: snapshot.category ?? 'other',
+            layout: snapshot.layout ?? 'horizontal', archHeight: snapshot.archHeight ?? 15,
+            archUp: snapshot.archUp !== false, tilt: snapshot.tilt ?? 0,
+            ruby: snapshot.ruby ?? '', letterSpacing: snapshot.letterSpacing ?? '',
+          });
+          ref.id = newId;
+        },
+        redoFn: async () => { await deletePlaceName(ref.id); },
+      });
       clearSelectedPlaceName();
     } catch (e) {
       setError('削除に失敗しました: ' + (e.code ?? e.message));

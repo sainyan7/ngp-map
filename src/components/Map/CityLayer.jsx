@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { CircleMarker, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import useMapStore from '../../store/useMapStore';
-import { addCity, updateCity } from '../../firebase/cities';
+import { addCity, updateCity, deleteCity } from '../../firebase/cities';
 
 // Compute ruby font size: 75% of main, but minimum 9px and maximum = main size
 function calcRubyPx(mainPx) {
@@ -159,6 +159,7 @@ export default function CityLayer() {
     cityDragEnabled,
     setDrawingMode,
     showRuby,
+    pushHistory,
   } = useMapStore();
   const map  = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -180,9 +181,19 @@ export default function CityLayer() {
       if (drawingMode !== 'add_city') return;
       const lat = Math.round(e.latlng.lat);
       const lng = Math.round(e.latlng.lng);
-      const id = await addCity({ lat, lng, name: '', type: 'city' });
+      const cityData = { lat, lng, name: '', type: 'city' };
+      const id = await addCity(cityData);
       setSelectedCity({ id, lat, lng, name: '', type: 'city' });
       setDrawingMode('select');
+      const ref = { id };
+      pushHistory({
+        label: '都市追加',
+        undoFn: async () => { await deleteCity(ref.id); },
+        redoFn: async () => {
+          const newId = await addCity(cityData);
+          ref.id = newId;
+        },
+      });
     },
   });
 
@@ -197,9 +208,8 @@ export default function CityLayer() {
   const showSCapLbl  = zoom >= minZ + 1.0;
   const showCityLbl  = zoom >= minZ + 2.0;
 
-  // Always allow city selection regardless of drawing mode.
-  // stopPropagation prevents the map-level click from also firing drawing actions.
   const handleClick = (city, e) => {
+    if (drawingMode !== 'select') return;
     e?.originalEvent?.stopPropagation?.();
     setSelectedCity(city);
   };
@@ -244,6 +254,7 @@ export default function CityLayer() {
               key={id}
               position={pos}
               icon={capitalIcon}
+              interactive={drawingMode === 'select'}
               eventHandlers={{ click: (e) => handleClick(city, e) }}
             >
               {showCapLbl && (
@@ -282,6 +293,7 @@ export default function CityLayer() {
               key={id}
               position={pos}
               icon={majorCityIcon}
+              interactive={drawingMode === 'select'}
               eventHandlers={{ click: (e) => handleClick(city, e) }}
             >
               {showMajLbl && (
@@ -321,6 +333,7 @@ export default function CityLayer() {
               center={pos}
               radius={5}
               pathOptions={{ color: '#B91C1C', fillColor: '#EF4444', fillOpacity: 0.9, weight: 1.5 }}
+              interactive={drawingMode === 'select'}
               eventHandlers={{ click: (e) => handleClick(city, e) }}
             >
               {showSCapLbl && (
@@ -355,6 +368,7 @@ export default function CityLayer() {
             center={pos}
             radius={4}
             pathOptions={{ color: '#6B7280', fillColor: '#F9FAFB', fillOpacity: 0.9, weight: 1.5 }}
+            interactive={drawingMode === 'select'}
             eventHandlers={{ click: (e) => handleClick(city, e) }}
           >
             {showCityLbl && (

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-const useMapStore = create((set) => ({
+const useMapStore = create((set, get) => ({
   // ── Layer visibility ────────────────────────────────────────────────────────
   layers: {
     city:            true,
@@ -90,12 +90,19 @@ const useMapStore = create((set) => ({
   setFactions: (factions) => set({ factions }),
 
   // ── Ruby (furigana) display toggle ────────────────────────────────────────
-  showRuby: true,
+  showRuby: false,
   toggleRuby: () => set((state) => ({ showRuby: !state.showRuby })),
 
   // ── Facility label display toggle ─────────────────────────────────────────
-  showFacilityLabel: true,
+  showFacilityLabel: false,
   toggleFacilityLabel: () => set((state) => ({ showFacilityLabel: !state.showFacilityLabel })),
+
+  // ── Facility type sub-filters ─────────────────────────────────────────────
+  facilityTypeFilters: { airport: true, port: true, military: true, other: true },
+  toggleFacilityTypeFilter: (key) =>
+    set((state) => ({
+      facilityTypeFilters: { ...state.facilityTypeFilters, [key]: !state.facilityTypeFilters[key] },
+    })),
 
   // ── Map settings ────────────────────────────────────────────────────────────
   mapImageUrl: null,
@@ -112,9 +119,64 @@ const useMapStore = create((set) => ({
   setMeasureEnd: (pt) => set({ measureEnd: pt }),
   clearMeasure: () => set({ measureStart: null, measureEnd: null }),
 
-  // ── Whiteboard strokes (real-time, ephemeral) ─────────────────────────────
+  // ── Whiteboard strokes (real-time from Firestore — other users' committed strokes) ──
   whiteboardStrokes: [],
   setWhiteboardStrokes: (strokes) => set({ whiteboardStrokes: strokes }),
+
+  // ── Whiteboard live strokes (in-progress from other users) ────────────────
+  liveStrokes: [],
+  setLiveStrokes: (strokes) => set({ liveStrokes: strokes }),
+
+  // ── Pending whiteboard strokes (own strokes drawn this session) ────────────
+  // Added immediately on mouseup — persists until undo / erase button.
+  // Independent of Firestore subscription reliability.
+  pendingWhiteboardStrokes: [],
+  addPendingWhiteboardStroke: (stroke) =>
+    set((s) => ({ pendingWhiteboardStrokes: [...s.pendingWhiteboardStrokes, stroke] })),
+  updatePendingWhiteboardStrokeId: (tempId, realId) =>
+    set((s) => ({
+      pendingWhiteboardStrokes: s.pendingWhiteboardStrokes.map((stroke) =>
+        stroke.id === tempId ? { ...stroke, id: realId } : stroke,
+      ),
+    })),
+  removePendingWhiteboardStroke: (id) =>
+    set((s) => ({
+      pendingWhiteboardStrokes: s.pendingWhiteboardStrokes.filter((stroke) => stroke.id !== id),
+    })),
+  clearPendingWhiteboardStrokesByUser: (userId) =>
+    set((s) => ({
+      pendingWhiteboardStrokes: s.pendingWhiteboardStrokes.filter((stroke) => stroke.userId !== userId),
+    })),
+  clearAllPendingWhiteboardStrokes: () => set({ pendingWhiteboardStrokes: [] }),
+
+  // ── Undo / Redo history ───────────────────────────────────────────────────
+  // Each entry: { label: string, undoFn: async () => void, redoFn: async () => void }
+  historyStack: [],
+  futureStack: [],
+  pushHistory: (entry) => set((s) => ({
+    historyStack: [...s.historyStack.slice(-49), entry],
+    futureStack: [],
+  })),
+  performUndo: async () => {
+    const { historyStack, futureStack } = get();
+    if (historyStack.length === 0) return;
+    const entry = historyStack[historyStack.length - 1];
+    set({ historyStack: historyStack.slice(0, -1), futureStack: [...futureStack, entry] });
+    try { await entry.undoFn(); } catch (e) {
+      console.error('[Undo] failed:', e);
+      set((s) => ({ historyStack: [...s.historyStack, entry], futureStack: s.futureStack.slice(0, -1) }));
+    }
+  },
+  performRedo: async () => {
+    const { historyStack, futureStack } = get();
+    if (futureStack.length === 0) return;
+    const entry = futureStack[futureStack.length - 1];
+    set({ futureStack: futureStack.slice(0, -1), historyStack: [...historyStack, entry] });
+    try { await entry.redoFn(); } catch (e) {
+      console.error('[Redo] failed:', e);
+      set((s) => ({ futureStack: [...s.futureStack, entry], historyStack: s.historyStack.slice(0, -1) }));
+    }
+  },
 }));
 
 export default useMapStore;

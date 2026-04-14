@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import useMapStore from '../../store/useMapStore';
-import { updateCity, deleteCity } from '../../firebase/cities';
+import { addCity, updateCity, deleteCity } from '../../firebase/cities';
 
 const TYPE_OPTIONS = [
   { value: 'capital',       label: '首都／総督府所在地' },
@@ -21,6 +21,7 @@ export default function CityEditPopup() {
   const {
     selectedCity, clearSelectedCity,
     cityDragEnabled, setCityDragEnabled,
+    pushHistory,
   } = useMapStore();
   const [form, setForm]     = useState({ name: '', type: 'city', ruby: '' });
   const [saving, setSaving] = useState(false);
@@ -41,7 +42,15 @@ export default function CityEditPopup() {
     setSaving(true);
     setError('');
     try {
-      await updateCity(selectedCity.id, { name: form.name, type: form.type, ruby: form.ruby });
+      const id = selectedCity.id;
+      const before = { name: selectedCity.name || '', type: selectedCity.type || 'city', ruby: selectedCity.ruby || '' };
+      const after  = { name: form.name, type: form.type, ruby: form.ruby };
+      await updateCity(id, after);
+      pushHistory({
+        label: '都市編集',
+        undoFn: async () => { await updateCity(id, before); },
+        redoFn:  async () => { await updateCity(id, after); },
+      });
       clearSelectedCity();
     } catch (e) {
       setError('保存に失敗しました: ' + (e.code ?? e.message));
@@ -54,7 +63,17 @@ export default function CityEditPopup() {
     const label = selectedCity.name || '名称未設定';
     if (!window.confirm(`「${label}」を削除しますか？`)) return;
     try {
-      await deleteCity(selectedCity.id);
+      const snapshot = { ...selectedCity };
+      await deleteCity(snapshot.id);
+      const ref = { id: snapshot.id };
+      pushHistory({
+        label: '都市削除',
+        undoFn: async () => {
+          const newId = await addCity({ lat: snapshot.lat, lng: snapshot.lng, name: snapshot.name || '', type: snapshot.type || 'city', ruby: snapshot.ruby || '' });
+          ref.id = newId;
+        },
+        redoFn: async () => { await deleteCity(ref.id); },
+      });
       clearSelectedCity();
     } catch (e) {
       setError('削除に失敗しました: ' + (e.code ?? e.message));

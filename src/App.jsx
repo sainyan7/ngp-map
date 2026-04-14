@@ -15,13 +15,12 @@ import SearchBox from './components/Search/SearchBox';
 
 
 const TOOLS = [
-  { mode: 'select',       label: '選択',    title: 'クリックで地物を選択' },
+  { mode: 'select',       label: '選択',    title: 'クリックで都市・地名・施設を選択' },
   { mode: 'add_city',     label: '都市追加', title: 'クリックした位置に都市を追加' },
   { mode: 'add_label',    label: '地名追加', title: 'クリックした位置に地名ラベルを追加' },
   { mode: 'add_facility', label: '施設追加', title: 'クリックした位置に重要施設を追加' },
-  { mode: 'measure',   label: '計測',    title: '2点をクリックして距離を計測（3クリック目でリセット）' },
-  { mode: 'whiteboard', label: '描画',   title: 'マウスをドラッグして自由描画（会議用）' },
-  { mode: 'delete',    label: '削除',    title: '地物を選択して削除' },
+  { mode: 'measure',      label: '計測',    title: '2点をクリックして距離を計測（3クリック目でリセット）' },
+  { mode: 'whiteboard',   label: '描画',    title: 'マウス・ペンをドラッグして自由描画（会議用）' },
 ];
 
 function Header({ onToggleLayer }) {
@@ -60,11 +59,32 @@ function Header({ onToggleLayer }) {
 }
 
 function Toolbar({ onExport }) {
-  const { drawingMode, setDrawingMode } = useMapStore();
+  const { drawingMode, setDrawingMode, historyStack, futureStack, performUndo, performRedo,
+          clearPendingWhiteboardStrokesByUser, clearAllPendingWhiteboardStrokes } = useMapStore();
   const { user, isAdmin } = useAuthStore();
 
   return (
     <footer className="h-12 bg-gray-900 border-t border-gray-700 flex items-center px-2 gap-1 shrink-0 overflow-x-auto">
+      {/* Undo / Redo buttons */}
+      <button
+        title="元に戻す (Ctrl+Z)"
+        onClick={performUndo}
+        disabled={historyStack.length === 0}
+        className="shrink-0 px-2 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors
+                   bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        ↩
+      </button>
+      <button
+        title="やり直す (Ctrl+Y)"
+        onClick={performRedo}
+        disabled={futureStack.length === 0}
+        className="shrink-0 px-2 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors
+                   bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        ↪
+      </button>
+      <div className="shrink-0 w-px h-5 bg-gray-600 mx-0.5" />
       {TOOLS.map(({ mode, label, title }) => (
         <button
           key={mode}
@@ -74,29 +94,48 @@ function Toolbar({ onExport }) {
             ${drawingMode === mode
               ? 'bg-blue-600 text-white'
               : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }
-            ${mode === 'delete' ? 'ml-1 bg-red-900 hover:bg-red-800 text-red-200' + (drawingMode === 'delete' ? ' bg-red-600' : '') : ''}
-          `}
+            }`}
         >
           {label}
         </button>
       ))}
 
+      {/* 解除ボタン — 選択モード以外のとき強調表示、クリックで選択モードに戻る */}
+      <button
+        title="現在のモードを解除して選択モードに戻る"
+        onClick={() => setDrawingMode('select')}
+        disabled={drawingMode === 'select'}
+        className={`shrink-0 ml-1 px-2.5 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors border
+          ${drawingMode !== 'select'
+            ? 'bg-orange-700 hover:bg-orange-600 text-white border-orange-500'
+            : 'bg-gray-800 text-gray-600 border-gray-700 cursor-default'
+          }`}
+      >
+        解除
+      </button>
+
       {/* Whiteboard clear buttons — visible when in whiteboard mode */}
       {drawingMode === 'whiteboard' && (
         <>
           <button
-            title="自分の描画をすべて消す"
-            onClick={() => user && deleteMyStrokes(user.uid).catch(console.error)}
+            title="自分が描いた線をすべて消す"
+            onClick={() => {
+              if (!user) return;
+              deleteMyStrokes(user.uid).catch(console.error);
+              clearPendingWhiteboardStrokesByUser(user.uid);
+            }}
             className="shrink-0 ml-1 px-2.5 py-1.5 rounded text-xs sm:text-sm font-medium
                        bg-yellow-800 hover:bg-yellow-700 text-yellow-200 transition-colors"
           >
-            自分を消す
+            描画を消す
           </button>
           {isAdmin && (
             <button
               title="全員の描画をすべて消す（管理者専用）"
-              onClick={() => deleteAllStrokes().catch(console.error)}
+              onClick={() => {
+                deleteAllStrokes().catch(console.error);
+                clearAllPendingWhiteboardStrokes();
+              }}
               className="shrink-0 px-2.5 py-1.5 rounded text-xs sm:text-sm font-medium
                          bg-red-900 hover:bg-red-800 text-red-200 transition-colors"
             >
@@ -122,8 +161,7 @@ function Toolbar({ onExport }) {
         {drawingMode === 'add_label'    && 'クリックした位置に地名ラベルを追加'}
         {drawingMode === 'add_facility' && 'クリックした位置に重要施設を追加'}
         {drawingMode === 'measure'      && '1点目→2点目をクリック、3点目でリセット'}
-        {drawingMode === 'whiteboard'   && 'ドラッグして描画 | 「自分を消す」で自分の線を削除'}
-        {drawingMode === 'delete'       && '地物を選択→削除ボタンで削除'}
+        {drawingMode === 'whiteboard'   && 'マウス・ペンでドラッグして描画 | 「描画を消す」で自分の線を削除'}
       </div>
     </footer>
   );
@@ -131,10 +169,28 @@ function Toolbar({ onExport }) {
 
 export default function App() {
   const { isAuthenticated, initializing, restoreSession } = useAuthStore();
+  const { performUndo, performRedo } = useMapStore();
   const [showLayerPanel, setShowLayerPanel] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
   useEffect(() => { restoreSession(); }, []);
+
+  // Keyboard shortcuts: Ctrl+Z = undo, Ctrl+Y / Ctrl+Shift+Z = redo
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        performUndo();
+      } else if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        performRedo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [performUndo, performRedo]);
 
   if (initializing) {
     return (

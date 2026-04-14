@@ -13,6 +13,7 @@ const SUBTYPE_OPTIONS = {
   airport:  [
     { value: 'international',  label: '国際空港' },
     { value: 'regional',       label: '地方空港' },
+    { value: 'joint_use',      label: '軍民共用飛行場' },
     { value: 'other_airfield', label: 'その他の飛行場' },
   ],
   port: [
@@ -46,6 +47,7 @@ export default function FacilityEditPopup() {
   const {
     selectedFacility, clearSelectedFacility,
     facilityDragEnabled, setFacilityDragEnabled,
+    pushHistory,
   } = useMapStore();
   const [form, setForm]     = useState({ name: '', type: 'airport', subtype: 'international', ruby: '' });
   const [saving, setSaving] = useState(false);
@@ -80,9 +82,26 @@ export default function FacilityEditPopup() {
     try {
       const data = { name: form.name, type: form.type, subtype: form.subtype ?? null, ruby: form.ruby };
       if (selectedFacility.id) {
-        await updateFacility(selectedFacility.id, data);
+        const id = selectedFacility.id;
+        const before = { name: selectedFacility.name || '', type: selectedFacility.type || 'airport', subtype: selectedFacility.subtype ?? null, ruby: selectedFacility.ruby || '' };
+        await updateFacility(id, data);
+        pushHistory({
+          label: '施設編集',
+          undoFn: async () => { await updateFacility(id, before); },
+          redoFn:  async () => { await updateFacility(id, data); },
+        });
       } else {
-        await addFacility({ lat: selectedFacility.lat, lng: selectedFacility.lng, ...data });
+        const { lat, lng } = selectedFacility;
+        const newId = await addFacility({ lat, lng, ...data });
+        const ref = { id: newId };
+        pushHistory({
+          label: '施設追加',
+          undoFn: async () => { await deleteFacility(ref.id); },
+          redoFn:  async () => {
+            const id = await addFacility({ lat, lng, ...data });
+            ref.id = id;
+          },
+        });
       }
       clearSelectedFacility();
     } catch (e) {
@@ -97,7 +116,17 @@ export default function FacilityEditPopup() {
     if (!selectedFacility.id) { clearSelectedFacility(); return; }
     if (!window.confirm(`「${label}」を削除しますか？`)) return;
     try {
-      await deleteFacility(selectedFacility.id);
+      const snapshot = { ...selectedFacility };
+      await deleteFacility(snapshot.id);
+      const ref = { id: snapshot.id };
+      pushHistory({
+        label: '施設削除',
+        undoFn: async () => {
+          const newId = await addFacility({ lat: snapshot.lat, lng: snapshot.lng, name: snapshot.name || '', type: snapshot.type || 'airport', subtype: snapshot.subtype ?? null, ruby: snapshot.ruby || '' });
+          ref.id = newId;
+        },
+        redoFn: async () => { await deleteFacility(ref.id); },
+      });
       clearSelectedFacility();
     } catch (e) {
       setError('削除に失敗しました: ' + (e.code ?? e.message));

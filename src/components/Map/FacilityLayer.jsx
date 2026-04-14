@@ -24,6 +24,7 @@ const FACILITY_ICON_CONFIG = {
   international:  { symbol: '✈', bg: '#1D4ED8', size: 16, label: '国際空港' },
   regional:       { symbol: '✈', bg: '#3B82F6', size: 14, label: '地方空港' },
   other_airfield: { symbol: '✈', bg: '#7DD3FC', size: 13, label: 'その他飛行場' },
+  joint_use:      { symbol: '✈', bg: '#4D7C0F', size: 14, label: '軍民共用飛行場', badge: '★' },
   // Port (civilian — blue tones)
   major_port:     { symbol: '⚓', bg: '#1565C0', size: 16, label: '重要港' },
   regional_port:  { symbol: '⚓', bg: '#134E4A', size: 14, label: '地方港' },
@@ -134,6 +135,21 @@ const DragFacilityMarker = memo(function DragFacilityMarker({ facility, showRuby
   );
 });
 
+// Determine which type-filter category a facility belongs to.
+// joint_use belongs to both 'airport' and 'military'.
+function facilityMatchesFilters(facility, filters) {
+  const { type, subtype } = facility;
+  if (subtype === 'joint_use') return filters.airport || filters.military;
+  if (['international', 'regional', 'other_airfield'].includes(subtype)) return filters.airport;
+  if (['garrison', 'air_base', 'naval_base', 'other_military'].includes(subtype)) return filters.military;
+  if (['major_port', 'regional_port'].includes(subtype)) return filters.port;
+  // Fallback to type
+  if (type === 'airport')  return filters.airport;
+  if (type === 'port')     return filters.port;
+  if (type === 'military') return filters.military;
+  return filters.other;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function FacilityLayer() {
   const {
@@ -142,6 +158,7 @@ export default function FacilityLayer() {
     facilityDragEnabled,
     setDrawingMode,
     showRuby, showFacilityLabel,
+    facilityTypeFilters,
   } = useMapStore();
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -169,13 +186,17 @@ export default function FacilityLayer() {
   if (!layers.facilities) return null;
 
   const handleClick = (facility, e) => {
+    if (drawingMode !== 'select') return;
     e?.originalEvent?.stopPropagation?.();
     setSelectedFacility(facility);
   };
 
+  // Apply type sub-filters
+  const visibleFacilities = facilities.filter((f) => facilityMatchesFilters(f, facilityTypeFilters));
+
   return (
     <>
-      {facilities.map((facility) => {
+      {visibleFacilities.map((facility) => {
         const { id } = facility;
         const isDragTarget = facilityDragEnabled && selectedFacility?.id === id;
         const displayLabel = facility.name || '名称未設定';
@@ -199,6 +220,7 @@ export default function FacilityLayer() {
             key={id}
             position={[facility.lat, facility.lng]}
             icon={icon}
+            interactive={drawingMode === 'select'}
             eventHandlers={{ click: (e) => handleClick(facility, e) }}
           >
             {showFacilityLabel && (

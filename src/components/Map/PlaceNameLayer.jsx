@@ -307,6 +307,7 @@ export default function PlaceNameLayer() {
             key={`${id}-${name}-${category}-${isHighlighted}-${Math.round(zoom * 2)}`}
             position={pos}
             icon={icon}
+            interactive={drawingMode === 'select'}
             eventHandlers={{
               click(e) {
                 if (drawingMode !== 'select') return;
