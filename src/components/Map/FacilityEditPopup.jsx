@@ -23,6 +23,7 @@ const SUBTYPE_OPTIONS = {
   military: [
     { value: 'garrison',       label: '駐屯地' },
     { value: 'air_base',       label: '航空基地' },
+    { value: 'joint_use',      label: '軍民共用飛行場' },
     { value: 'naval_base',     label: '軍港' },
     { value: 'other_military', label: 'その他の軍事施設' },
   ],

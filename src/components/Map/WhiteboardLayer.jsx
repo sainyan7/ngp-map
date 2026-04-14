@@ -252,6 +252,13 @@ function WhiteboardEvents() {
     ...pendingWhiteboardStrokes.filter((s) => !firestoreIds.has(s.id)),
   ];
 
+  // Determine first stroke ID per user (by createdAt asc; pending strokes have no createdAt → sort last)
+  const getTs = (s) => s.createdAt?.toMillis?.() ?? (s.createdAt?.seconds != null ? s.createdAt.seconds * 1000 : Infinity);
+  const firstStrokeIdByUser = new Map();
+  [...allStrokes].sort((a, b) => getTs(a) - getTs(b)).forEach((s) => {
+    if (!firstStrokeIdByUser.has(s.userId)) firstStrokeIdByUser.set(s.userId, s.id);
+  });
+
   return (
     <>
       {/* In-progress stroke preview */}
@@ -276,9 +283,10 @@ function WhiteboardEvents() {
         );
       })}
 
-      {/* Nickname labels */}
+      {/* Nickname labels — first stroke per user only */}
       {allStrokes.map((stroke) => {
-        if (!stroke.points || stroke.points.length === 0) return null;
+        if (!stroke.points?.length) return null;
+        if (firstStrokeIdByUser.get(stroke.userId) !== stroke.id) return null;
         return (
           <StrokeLabelMarker
             key={`lbl-${stroke.id}`}
