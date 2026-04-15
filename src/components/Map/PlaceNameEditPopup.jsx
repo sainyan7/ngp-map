@@ -269,6 +269,7 @@ export default function PlaceNameEditPopup() {
         <div>
           <label className="text-xs text-gray-400">名称</label>
           <input
+            data-1p-ignore
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
             placeholder="地名を入力"
@@ -283,6 +284,7 @@ export default function PlaceNameEditPopup() {
         <div>
           <label className="text-xs text-gray-400">読み（ルビ）</label>
           <input
+            data-1p-ignore
             value={form.ruby}
             onChange={(e) => setField('ruby', e.target.value)}
             placeholder="よみがな（任意）"

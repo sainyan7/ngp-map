@@ -35,6 +35,7 @@ function PropertyDialog({ featureType, onSave, onCancel }) {
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">名称</label>
             <input
+              data-1p-ignore
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="地物の名称"
@@ -60,6 +61,7 @@ function PropertyDialog({ featureType, onSave, onCancel }) {
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">種別・サブタイプ</label>
             <input
+              data-1p-ignore
               value={form.subType}
               onChange={(e) => setForm({ ...form, subType: e.target.value })}
               placeholder="例: 首都, 州境線, 鉄道..."
@@ -70,6 +72,7 @@ function PropertyDialog({ featureType, onSave, onCancel }) {
           <div>
             <label className="text-xs text-gray-400 block mb-0.5">説明</label>
             <textarea
+              data-1p-ignore
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={2}
@@ -87,6 +90,7 @@ function PropertyDialog({ featureType, onSave, onCancel }) {
                 className="w-8 h-8 cursor-pointer bg-transparent border-0 rounded"
               />
               <input
+                data-1p-ignore
                 value={form.color}
                 onChange={(e) => setForm({ ...form, color: e.target.value })}
                 className="flex-1 bg-gray-700 text-white rounded px-2 py-1.5 text-sm border border-gray-600 focus:outline-none focus:border-blue-500"

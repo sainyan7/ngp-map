@@ -110,6 +110,7 @@ export default function CityEditPopup() {
         <div>
           <label className="text-xs text-gray-400">都市名</label>
           <input
+            data-1p-ignore
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="都市名を入力"
@@ -124,6 +125,7 @@ export default function CityEditPopup() {
         <div>
           <label className="text-xs text-gray-400">読み（ルビ）</label>
           <input
+            data-1p-ignore
             value={form.ruby}
             onChange={(e) => setForm({ ...form, ruby: e.target.value })}
             placeholder="よみがな（任意）"

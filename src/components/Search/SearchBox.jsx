@@ -54,6 +54,7 @@ export default function SearchBox() {
   return (
     <div className="relative w-48">
       <input
+        data-1p-ignore
         type="text"
         value={query}
         onChange={(e) => {

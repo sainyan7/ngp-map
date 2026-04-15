@@ -104,6 +104,7 @@ export default function LayerPanel({ open }) {
             <span className="text-xs text-gray-500">units/km</span>
           </div>
           <input
+            data-1p-ignore
             type="number"
             min={1}
             max={99999}

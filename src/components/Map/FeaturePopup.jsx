@@ -111,6 +111,7 @@ export default function FeaturePopup() {
             <div>
               <label className="text-xs text-gray-400">名称</label>
               <input
+                data-1p-ignore
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full bg-gray-700 rounded px-2 py-1 text-sm mt-0.5"
@@ -119,6 +120,7 @@ export default function FeaturePopup() {
             <div>
               <label className="text-xs text-gray-400">種別</label>
               <input
+                data-1p-ignore
                 value={form.subType}
                 onChange={(e) => setForm({ ...form, subType: e.target.value })}
                 className="w-full bg-gray-700 rounded px-2 py-1 text-sm mt-0.5"
@@ -127,6 +129,7 @@ export default function FeaturePopup() {
             <div>
               <label className="text-xs text-gray-400">説明</label>
               <textarea
+                data-1p-ignore
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={3}
@@ -143,6 +146,7 @@ export default function FeaturePopup() {
                   className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
                 />
                 <input
+                  data-1p-ignore
                   value={form.color}
                   onChange={(e) => setForm({ ...form, color: e.target.value })}
                   className="flex-1 bg-gray-700 rounded px-2 py-1 text-sm"

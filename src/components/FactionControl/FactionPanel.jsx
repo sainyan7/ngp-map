@@ -78,6 +78,7 @@ function FactionForm({ initial, onSave, onCancel }) {
     <div className="px-3 py-3 border-b border-gray-700 space-y-2">
       {/* Name */}
       <input
+        data-1p-ignore
         autoFocus
         type="text"
         placeholder="勢力名"
@@ -89,6 +90,7 @@ function FactionForm({ initial, onSave, onCancel }) {
       />
       {/* Capital */}
       <input
+        data-1p-ignore
         type="text"
         placeholder="首都都市名（任意）"
         value={form.capital}
@@ -98,6 +100,7 @@ function FactionForm({ initial, onSave, onCancel }) {
       />
       {/* Description */}
       <input
+        data-1p-ignore
         type="text"
         placeholder="メモ（任意）"
         value={form.description}
