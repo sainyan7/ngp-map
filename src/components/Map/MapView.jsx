@@ -7,7 +7,6 @@ import { subscribeFeatures } from '../../firebase/features';
 import { subscribeCities } from '../../firebase/cities';
 import { subscribePlaceNames } from '../../firebase/placeNames';
 import { subscribeFacilities } from '../../firebase/facilities';
-import { subscribeWhiteboard, subscribeLiveStrokes } from '../../firebase/whiteboard';
 import useMapStore from '../../store/useMapStore';
 import CityLayer from './CityLayer';
 import FacilityLayer from './FacilityLayer';
@@ -122,7 +121,6 @@ export default function MapView() {
   const {
     mapImageUrl, setMapImageUrl,
     setFeatures, setCities, setPlaceNames, setFacilities,
-    setWhiteboardStrokes, setLiveStrokes,
     setCurrentTurn,
     layers,
     overlayOpacity,
@@ -145,14 +143,12 @@ export default function MapView() {
       }
     });
 
-    const unsubFeatures    = subscribeFeatures(setFeatures);
-    const unsubCities      = subscribeCities(setCities);
-    const unsubPlaceNames  = subscribePlaceNames(setPlaceNames);
-    const unsubFacilities  = subscribeFacilities(setFacilities);
-    const unsubWhiteboard  = subscribeWhiteboard(setWhiteboardStrokes);
-    const unsubLiveStrokes = subscribeLiveStrokes(setLiveStrokes);
+    const unsubFeatures   = subscribeFeatures(setFeatures);
+    const unsubCities     = subscribeCities(setCities);
+    const unsubPlaceNames = subscribePlaceNames(setPlaceNames);
+    const unsubFacilities = subscribeFacilities(setFacilities);
 
-    return () => { unsubSettings(); unsubFeatures(); unsubCities(); unsubPlaceNames(); unsubFacilities(); unsubWhiteboard(); unsubLiveStrokes(); };
+    return () => { unsubSettings(); unsubFeatures(); unsubCities(); unsubPlaceNames(); unsubFacilities(); };
   }, []);
 
   useEffect(() => {

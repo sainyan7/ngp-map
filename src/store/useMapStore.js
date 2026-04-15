@@ -119,14 +119,6 @@ const useMapStore = create((set, get) => ({
   setMeasureEnd: (pt) => set({ measureEnd: pt }),
   clearMeasure: () => set({ measureStart: null, measureEnd: null }),
 
-  // ── Whiteboard strokes (real-time from Firestore — other users' committed strokes) ──
-  whiteboardStrokes: [],
-  setWhiteboardStrokes: (strokes) => set({ whiteboardStrokes: strokes }),
-
-  // ── Whiteboard live strokes (in-progress from other users) ────────────────
-  liveStrokes: [],
-  setLiveStrokes: (strokes) => set({ liveStrokes: strokes }),
-
   // ── Pending whiteboard strokes (own strokes drawn this session) ────────────
   // Added immediately on mouseup — persists until undo / erase button.
   // Independent of Firestore subscription reliability.

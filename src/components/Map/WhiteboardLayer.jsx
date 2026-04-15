@@ -3,7 +3,10 @@ import { Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import useMapStore from '../../store/useMapStore';
 import useAuthStore from '../../store/useAuthStore';
-import { addStroke, updateLiveStroke, deleteLiveStroke, deleteStrokeById } from '../../firebase/whiteboard';
+import {
+  addStroke, updateLiveStroke, deleteLiveStroke, deleteStrokeById,
+  subscribeWhiteboard, subscribeLiveStrokes,
+} from '../../firebase/whiteboard';
 
 // Deterministic color from nickname string
 function nicknameToColor(nickname) {
@@ -48,10 +51,10 @@ function StrokeLabelMarker({ points, nickname, color }) {
   return null;
 }
 
-function WhiteboardEvents() {
+function WhiteboardEvents({ whiteboardStrokes, liveStrokes }) {
   const map = useMap();
   const {
-    drawingMode, whiteboardStrokes, liveStrokes, pushHistory,
+    drawingMode, pushHistory,
     pendingWhiteboardStrokes,
     addPendingWhiteboardStroke,
     updatePendingWhiteboardStrokeId,
@@ -328,5 +331,20 @@ function WhiteboardEvents() {
 }
 
 export default function WhiteboardLayer() {
-  return <WhiteboardEvents />;
+  // Subscribe directly to Firestore here so real-time updates are guaranteed
+  // regardless of Zustand propagation timing.
+  const [whiteboardStrokes, setWbStrokes] = useState([]);
+  const [liveStrokes, setLiveStrokes] = useState([]);
+
+  useEffect(() => {
+    const unsub1 = subscribeWhiteboard((strokes) => {
+      setWbStrokes(strokes);
+    });
+    const unsub2 = subscribeLiveStrokes((strokes) => {
+      setLiveStrokes(strokes);
+    });
+    return () => { unsub1(); unsub2(); };
+  }, []);
+
+  return <WhiteboardEvents whiteboardStrokes={whiteboardStrokes} liveStrokes={liveStrokes} />;
 }
