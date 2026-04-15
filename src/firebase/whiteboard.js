@@ -8,19 +8,19 @@ const COL = 'whiteboard';
 const LIVE_COL = 'whiteboard_live';
 
 export function subscribeWhiteboard(callback) {
-  return onSnapshot(collection(db, COL), (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  });
+  return onSnapshot(
+    collection(db, COL),
+    (snap) => { callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); },
+    (err) => console.error('[Whiteboard] subscribeWhiteboard error:', err.code, err.message),
+  );
 }
 
 export async function addStroke({ userId, nickname, color, points }) {
   const ref = await addDoc(collection(db, COL), {
-    userId,
-    nickname,
-    color,
-    points,
+    userId, nickname, color, points,
     createdAt: serverTimestamp(),
   });
+  console.log('[Whiteboard] addStroke OK, id:', ref.id);
   return ref.id;
 }
 
@@ -59,7 +59,9 @@ export async function deleteLiveStroke(userId) {
 }
 
 export function subscribeLiveStrokes(callback) {
-  return onSnapshot(collection(db, LIVE_COL), (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-  });
+  return onSnapshot(
+    collection(db, LIVE_COL),
+    (snap) => { callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); },
+    (err) => console.error('[Whiteboard] subscribeLiveStrokes error:', err.code, err.message),
+  );
 }
