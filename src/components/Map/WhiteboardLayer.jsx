@@ -29,15 +29,15 @@ function StrokeLabelMarker({ points, nickname, color }) {
       className: '',
       html: `<span style="
         color:#fff;
-        font-size:11px;
+        font-size:9px;
         font-weight:bold;
         background:${color};
-        padding:2px 5px;
+        padding:1px 4px;
         border-radius:3px;
         white-space:nowrap;
         pointer-events:none;
-        opacity:0.95;
-        box-shadow:0 1px 4px rgba(0,0,0,0.6);
+        opacity:0.9;
+        box-shadow:0 1px 3px rgba(0,0,0,0.5);
         display:inline-block;
         transform:translateX(-50%);
       ">${nickname}</span>`,
