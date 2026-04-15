@@ -3161,7 +3161,7 @@ This typically indicates that your device does not have a healthy Internet conne
       padding:6px 12px;border-radius:6px;
       pointer-events:none;white-space:nowrap;
       border:1px solid rgba(250,204,21,0.4);
-    `,r.textContent=`距離: ${t} km`,n.appendChild(r),()=>{r.remove()}},[t]),null}const o0=16;function B2(t){let e=0;for(let n=0;n<t.length;n++)e=(e<<5)-e+t.charCodeAt(n),e|=0;return`hsl(${Math.abs(e)%360}, 70%, 60%)`}function a0({points:t,nickname:e,color:n}){const r=Yn(),i=t[Math.floor(t.length/2)];return q.useEffect(()=>{if(!i)return;const o=nt.divIcon({className:"",html:`<span style="
+    `,r.textContent=`距離: ${t} km`,n.appendChild(r),()=>{r.remove()}},[t]),null}const o0=10;function B2(t){let e=0;for(let n=0;n<t.length;n++)e=(e<<5)-e+t.charCodeAt(n),e|=0;return`hsl(${Math.abs(e)%360}, 70%, 60%)`}function a0({points:t,nickname:e,color:n}){const r=Yn(),i=t[Math.floor(t.length/2)];return q.useEffect(()=>{if(!i)return;const o=nt.divIcon({className:"",html:`<span style="
         color:#fff;
         font-size:9px;
         font-weight:bold;
