@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import L from 'leaflet';
-import { CircleMarker, Marker, Polyline, Polygon, Tooltip } from 'react-leaflet';
+import { useMap, useMapEvents, CircleMarker, Marker, Polyline, Polygon, Tooltip } from 'react-leaflet';
 import useMapStore from '../../store/useMapStore';
+import { updateFeature } from '../../firebase/features';
 
-const REGION_TYPE_COLORS = {
-  state:  '#A78BFA',
-  region: '#34D399',
-  county: '#60A5FA',
-  other:  '#F59E0B',
-};
-const REGION_TYPE_LABELS = {
-  state: '州', region: '地方', county: '郡', other: 'その他',
+export const REGION_TYPE_COLORS = {
+  state:       '#A78BFA',
+  region:      '#34D399',
+  county:      '#60A5FA',
+  island:      '#F97316',
+  archipelago: '#0EA5E9',
+  other:       '#F59E0B',
 };
 
 function polygonCentroid(positions) {
@@ -20,7 +20,17 @@ function polygonCentroid(positions) {
 }
 
 export default function FeatureLayer() {
-  const { features, layers, setSelectedFeature, selectedFeature, editingRegion } = useMapStore();
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+
+  // Re-render labels whenever zoom changes
+  useMapEvents({ zoom() { setZoom(map.getZoom()); } });
+  useEffect(() => { setZoom(map.getZoom()); }, [map]);
+
+  const { features, layers, regionTypeFilters, setSelectedFeature, selectedFeature, editingRegion } = useMapStore();
+
+  // Font size scales linearly with zoom (Simple CRS: ~-5 at full view, 0+ when zoomed in)
+  const fontSize = Math.max(7, Math.min(20, 13 + zoom));
 
   return (
     <>
@@ -39,25 +49,42 @@ export default function FeatureLayer() {
         if (type === 'region') {
           // Hide while vertex editing (RegionEditLayer renders it instead)
           if (editingRegion?.id === id) return null;
+
+          // Apply region-type sub-filter
+          const rt = properties?.regionType ?? 'other';
+          if (!regionTypeFilters[rt]) return null;
+
           const polys = feature.polygons ?? [];
           if (polys.length === 0) return null;
           const isSelected = selectedFeature?.id === id;
-          const color = REGION_TYPE_COLORS[properties?.regionType] ?? '#A78BFA';
-          const typeLabel = REGION_TYPE_LABELS[properties?.regionType] ?? '';
+          const regionColor = REGION_TYPE_COLORS[rt] ?? '#A78BFA';
+
           const mainPositions = polys[0].latlngs.map((p) => [p.lat, p.lng]);
           if (mainPositions.length < 3) return null;
-          const center = polygonCentroid(mainPositions);
+          const centroid = polygonCentroid(mainPositions);
+
+          // Use stored label position if manually moved, otherwise use centroid
+          const labelPos = feature.labelLatLng
+            ? [feature.labelLatLng.lat, feature.labelLatLng.lng]
+            : centroid;
+
           const icon = L.divIcon({
             className: '',
-            html: `<div style="text-align:center;pointer-events:none;transform:translateX(-50%);white-space:nowrap;">
-              <span style="font-size:13px;font-weight:bold;color:${color};
-                text-shadow:0 0 6px rgba(0,0,0,0.9),0 0 3px rgba(0,0,0,0.9);
-                letter-spacing:0.1em;">${properties?.name || ''}</span><br>
-              <span style="font-size:9px;color:#ccc;text-shadow:0 0 4px rgba(0,0,0,0.9);">${typeLabel}</span>
-            </div>`,
+            html: `<div style="
+              text-align:center;
+              pointer-events:none;
+              transform:translateX(-50%);
+              white-space:nowrap;
+              font-size:${fontSize}px;
+              font-weight:bold;
+              color:${regionColor};
+              text-shadow:0 0 6px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95);
+              letter-spacing:0.08em;
+            ">${properties?.name || ''}</div>`,
             iconSize: [0, 0],
             iconAnchor: [0, 0],
           });
+
           return (
             <React.Fragment key={id}>
               {polys.map((poly, idx) => {
@@ -68,8 +95,8 @@ export default function FeatureLayer() {
                     key={`${id}-${idx}`}
                     positions={positions}
                     pathOptions={{
-                      color,
-                      fillColor: color,
+                      color: regionColor,
+                      fillColor: regionColor,
                       fillOpacity: isSelected ? 0.18 : 0,
                       weight: isSelected ? 2 : 1.5,
                       dashArray: '5 4',
@@ -78,13 +105,25 @@ export default function FeatureLayer() {
                   />
                 );
               })}
-              <Marker position={center} icon={icon} interactive={false} />
+
+              {/* Label marker — draggable to reposition, click to select */}
+              <Marker
+                position={labelPos}
+                icon={icon}
+                draggable={true}
+                eventHandlers={{
+                  click: handleClick,
+                  dragend: (e) => {
+                    const ll = e.target.getLatLng();
+                    updateFeature(id, { labelLatLng: { lat: ll.lat, lng: ll.lng } });
+                  },
+                }}
+              />
             </React.Fragment>
           );
         }
 
         if (type === 'point') {
-          // geometry.latlng is { lat, lng }
           const p = geometry?.latlng;
           if (!p) return null;
           const pos = [p.lat, p.lng];
@@ -106,7 +145,6 @@ export default function FeatureLayer() {
         }
 
         if (type === 'line') {
-          // geometry.latlngs is [{ lat, lng }, ...]
           const positions = (geometry?.latlngs ?? []).map((p) => [p.lat, p.lng]);
           if (positions.length < 2) return null;
           return (
@@ -116,17 +154,12 @@ export default function FeatureLayer() {
               pathOptions={{ color, weight: 2 }}
               eventHandlers={{ click: handleClick }}
             >
-              {properties.name && (
-                <Tooltip sticky>
-                  {properties.name}
-                </Tooltip>
-              )}
+              {properties.name && <Tooltip sticky>{properties.name}</Tooltip>}
             </Polyline>
           );
         }
 
         if (type === 'polygon') {
-          // geometry.latlngs is [{ lat, lng }, ...]
           const positions = (geometry?.latlngs ?? []).map((p) => [p.lat, p.lng]);
           if (positions.length < 3) return null;
           return (
@@ -136,11 +169,7 @@ export default function FeatureLayer() {
               pathOptions={{ color, fillColor: color, fillOpacity: 0.2, weight: 2 }}
               eventHandlers={{ click: handleClick }}
             >
-              {properties.name && (
-                <Tooltip sticky>
-                  {properties.name}
-                </Tooltip>
-              )}
+              {properties.name && <Tooltip sticky>{properties.name}</Tooltip>}
             </Polygon>
           );
         }

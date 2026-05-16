@@ -1,20 +1,63 @@
 import useMapStore from '../../store/useMapStore';
 import useAuthStore from '../../store/useAuthStore';
 
-const LAYERS = [
-  { key: 'city',           label: '都市・首都',      color: '#EF4444' },
-  { key: 'place_names',    label: '地名',             color: '#93C5FD' },
-  { key: 'facilities',     label: '重要施設',         color: '#F59E0B' },
-  { key: 'highway',        label: '高速道路',         color: '#F97316' },
-  { key: 'highspeed_rail', label: '高速鉄道',         color: '#EC4899' },
-  { key: 'railway',        label: '幹線鉄道',         color: '#1F2937' },
-  { key: 'border',          label: '州境線',           color: '#6B7280' },
-  { key: 'regional_border', label: '地方境',           color: '#D97706' },
-  { key: 'region',          label: '領域名',           color: '#A78BFA' },
-];
+// Reusable checkbox row for a top-level layer
+function LayerRow({ layerKey, label, color, layers, toggleLayer, indent = false }) {
+  return (
+    <label className={`flex items-center gap-2 ${indent ? 'pl-5' : 'px-3'} pr-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors`}>
+      <input
+        type="checkbox"
+        checked={layers[layerKey] ?? false}
+        onChange={() => toggleLayer(layerKey)}
+        className="w-3.5 h-3.5 rounded cursor-pointer"
+        style={{ accentColor: color }}
+      />
+      <span className="flex items-center gap-1.5 text-sm text-gray-200 select-none">
+        <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: color }} />
+        {label}
+      </span>
+    </label>
+  );
+}
+
+// Reusable checkbox row for a sub-filter
+function SubRow({ filterKey, label, color, checked, onChange }) {
+  return (
+    <label className="flex items-center gap-2 pl-7 pr-3 py-0.5 cursor-pointer hover:bg-gray-700/60 transition-colors">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="w-3 h-3 rounded cursor-pointer"
+        style={{ accentColor: color }}
+      />
+      <span className="flex items-center gap-1 text-xs text-gray-400 select-none">
+        <span className="inline-block w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: color }} />
+        {label}
+      </span>
+    </label>
+  );
+}
+
+// Section divider with a label
+function GroupHeader({ label }) {
+  return (
+    <li className="px-3 pt-2 pb-0.5">
+      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
+    </li>
+  );
+}
 
 export default function LayerPanel({ open }) {
-  const { layers, toggleLayer, overlayOpacity, setOverlayOpacity, showRuby, toggleRuby, showFacilityLabel, toggleFacilityLabel, kmPerUnit, setKmPerUnit, facilityTypeFilters, toggleFacilityTypeFilter } = useMapStore();
+  const {
+    layers, toggleLayer,
+    overlayOpacity, setOverlayOpacity,
+    showRuby, toggleRuby,
+    showFacilityLabel, toggleFacilityLabel,
+    kmPerUnit, setKmPerUnit,
+    facilityTypeFilters, toggleFacilityTypeFilter,
+    regionTypeFilters, toggleRegionTypeFilter,
+  } = useMapStore();
   const { isAdmin } = useAuthStore();
 
   return (
@@ -24,53 +67,46 @@ export default function LayerPanel({ open }) {
       </div>
 
       <ul className="flex-1 overflow-y-auto py-1">
-        {LAYERS.map(({ key, label, color }) => (
-          <li key={key}>
-            <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-700 transition-colors">
-              <input
-                type="checkbox"
-                checked={layers[key] ?? false}
-                onChange={() => toggleLayer(key)}
-                className="w-3.5 h-3.5 rounded cursor-pointer"
-                style={{ accentColor: color }}
-              />
-              <span className="flex items-center gap-1.5 text-sm text-gray-200 select-none">
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
-                  style={{ backgroundColor: color }}
-                />
-                {label}
-              </span>
-            </label>
-            {/* Facility type sub-filters — only shown when facilities layer is on */}
-            {key === 'facilities' && layers.facilities && (
-              <ul className="pb-0.5">
-                {[
-                  { key: 'military', label: '軍事',           color: '#4D7C0F' },
-                  { key: 'airport',  label: '空港',           color: '#3B82F6' },
-                  { key: 'port',     label: '港',              color: '#0D9488' },
-                  { key: 'other',    label: 'その他施設',       color: '#7C3AED' },
-                ].map((f) => (
-                  <li key={f.key}>
-                    <label className="flex items-center gap-2 pl-5 pr-3 py-0.5 cursor-pointer hover:bg-gray-700/60 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={facilityTypeFilters[f.key] ?? true}
-                        onChange={() => toggleFacilityTypeFilter(f.key)}
-                        className="w-3 h-3 rounded cursor-pointer"
-                        style={{ accentColor: f.color }}
-                      />
-                      <span className="flex items-center gap-1 text-xs text-gray-400 select-none">
-                        <span className="inline-block w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: f.color }} />
-                        {f.label}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
+
+        {/* ── 都市・地名 ── */}
+        <li><LayerRow layerKey="city"        label="都市・首都" color="#EF4444" layers={layers} toggleLayer={toggleLayer} /></li>
+        <li><LayerRow layerKey="place_names" label="地名"       color="#93C5FD" layers={layers} toggleLayer={toggleLayer} /></li>
+
+        {/* ── 領域名 ── */}
+        <li><LayerRow layerKey="region" label="領域名" color="#A78BFA" layers={layers} toggleLayer={toggleLayer} /></li>
+        {layers.region && (
+          <>
+            <SubRow filterKey="state"       label="州"       color="#A78BFA" checked={regionTypeFilters.state}       onChange={() => toggleRegionTypeFilter('state')} />
+            <SubRow filterKey="region"      label="地方"     color="#34D399" checked={regionTypeFilters.region}      onChange={() => toggleRegionTypeFilter('region')} />
+            <SubRow filterKey="county"      label="郡・市域" color="#60A5FA" checked={regionTypeFilters.county}      onChange={() => toggleRegionTypeFilter('county')} />
+            <SubRow filterKey="island"      label="島"       color="#F97316" checked={regionTypeFilters.island}      onChange={() => toggleRegionTypeFilter('island')} />
+            <SubRow filterKey="archipelago" label="諸島"     color="#0EA5E9" checked={regionTypeFilters.archipelago} onChange={() => toggleRegionTypeFilter('archipelago')} />
+            <SubRow filterKey="other"       label="その他"   color="#F59E0B" checked={regionTypeFilters.other}       onChange={() => toggleRegionTypeFilter('other')} />
+          </>
+        )}
+
+        {/* ── 重要施設 ── */}
+        <li><LayerRow layerKey="facilities" label="重要施設" color="#F59E0B" layers={layers} toggleLayer={toggleLayer} /></li>
+        {layers.facilities && (
+          <>
+            <SubRow filterKey="military" label="軍事"       color="#4D7C0F" checked={facilityTypeFilters.military} onChange={() => toggleFacilityTypeFilter('military')} />
+            <SubRow filterKey="airport"  label="空港"       color="#3B82F6" checked={facilityTypeFilters.airport}  onChange={() => toggleFacilityTypeFilter('airport')} />
+            <SubRow filterKey="port"     label="港"         color="#0D9488" checked={facilityTypeFilters.port}     onChange={() => toggleFacilityTypeFilter('port')} />
+            <SubRow filterKey="other"    label="その他施設" color="#7C3AED" checked={facilityTypeFilters.other}    onChange={() => toggleFacilityTypeFilter('other')} />
+          </>
+        )}
+
+        {/* ── 交通 ── */}
+        <GroupHeader label="交通" />
+        <li><LayerRow layerKey="highway"        label="高速道路" color="#F97316" layers={layers} toggleLayer={toggleLayer} indent /></li>
+        <li><LayerRow layerKey="highspeed_rail" label="高速鉄道" color="#EC4899" layers={layers} toggleLayer={toggleLayer} indent /></li>
+        <li><LayerRow layerKey="railway"        label="幹線鉄道" color="#6B7280" layers={layers} toggleLayer={toggleLayer} indent /></li>
+
+        {/* ── 境界線 ── */}
+        <GroupHeader label="境界線" />
+        <li><LayerRow layerKey="border"          label="州境"   color="#9CA3AF" layers={layers} toggleLayer={toggleLayer} indent /></li>
+        <li><LayerRow layerKey="regional_border" label="地方境" color="#D97706" layers={layers} toggleLayer={toggleLayer} indent /></li>
+
       </ul>
 
       {/* 表示オプション */}

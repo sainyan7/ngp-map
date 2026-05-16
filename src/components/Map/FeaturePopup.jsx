@@ -15,12 +15,14 @@ const LAYER_LABELS = {
 };
 
 const REGION_TYPES = [
-  { value: 'state',  label: '州' },
-  { value: 'region', label: '地方' },
-  { value: 'county', label: '郡・市域' },
-  { value: 'other',  label: 'その他' },
+  { value: 'state',       label: '州' },
+  { value: 'region',      label: '地方' },
+  { value: 'county',      label: '郡・市域' },
+  { value: 'island',      label: '島' },
+  { value: 'archipelago', label: '諸島' },
+  { value: 'other',       label: 'その他' },
 ];
-const REGION_TYPE_LABELS = { state: '州', region: '地方', county: '郡・市域', other: 'その他' };
+const REGION_TYPE_LABELS = { state: '州', region: '地方', county: '郡・市域', island: '島', archipelago: '諸島', other: 'その他' };
 
 export default function FeaturePopup() {
   const { selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion } = useMapStore();
@@ -119,7 +121,18 @@ export default function FeaturePopup() {
                 onClick={() => { setAddingExclaveToRegion(selectedFeature); clearSelectedFeature(); }}
                 className="w-full bg-teal-700 hover:bg-teal-600 rounded-lg py-1.5 text-sm"
               >
-                飛び地を追加
+                ポリゴンを追加
+              </button>
+            )}
+            {isRegion && selectedFeature.labelLatLng && (
+              <button
+                onClick={async () => {
+                  await updateFeature(id, { labelLatLng: null });
+                  clearSelectedFeature();
+                }}
+                className="w-full bg-gray-600 hover:bg-gray-500 rounded-lg py-1.5 text-sm"
+              >
+                ラベル位置をリセット
               </button>
             )}
             <button

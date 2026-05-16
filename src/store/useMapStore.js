@@ -115,6 +115,13 @@ const useMapStore = create((set, get) => ({
       facilityTypeFilters: { ...state.facilityTypeFilters, [key]: !state.facilityTypeFilters[key] },
     })),
 
+  // ── Region type sub-filters ───────────────────────────────────────────────
+  regionTypeFilters: { state: true, region: true, county: true, island: true, archipelago: true, other: true },
+  toggleRegionTypeFilter: (key) =>
+    set((state) => ({
+      regionTypeFilters: { ...state.regionTypeFilters, [key]: !state.regionTypeFilters[key] },
+    })),
+
   // ── Map settings ────────────────────────────────────────────────────────────
   mapImageUrl: null,
   setMapImageUrl: (url) => set({ mapImageUrl: url }),

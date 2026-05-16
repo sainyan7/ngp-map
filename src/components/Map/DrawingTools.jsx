@@ -5,10 +5,12 @@ import useAuthStore from '../../store/useAuthStore';
 import { addFeature, updateFeature } from '../../firebase/features';
 
 const REGION_TYPES = [
-  { value: 'state',  label: '州' },
-  { value: 'region', label: '地方' },
-  { value: 'county', label: '郡・市域' },
-  { value: 'other',  label: 'その他' },
+  { value: 'state',       label: '州' },
+  { value: 'region',      label: '地方' },
+  { value: 'county',      label: '郡・市域' },
+  { value: 'island',      label: '島' },
+  { value: 'archipelago', label: '諸島' },
+  { value: 'other',       label: 'その他' },
 ];
 const SNAP_PX = 15;
 
