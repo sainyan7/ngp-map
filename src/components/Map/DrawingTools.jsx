@@ -1,8 +1,16 @@
 import { useState } from 'react';
-import { useMapEvents, Polyline, Polygon, CircleMarker } from 'react-leaflet';
+import { useMap, useMapEvents, Polyline, Polygon, CircleMarker } from 'react-leaflet';
 import useMapStore from '../../store/useMapStore';
 import useAuthStore from '../../store/useAuthStore';
-import { addFeature } from '../../firebase/features';
+import { addFeature, updateFeature } from '../../firebase/features';
+
+const REGION_TYPES = [
+  { value: 'state',  label: '州' },
+  { value: 'region', label: '地方' },
+  { value: 'county', label: '郡・市域' },
+  { value: 'other',  label: 'その他' },
+];
+const SNAP_PX = 15;
 
 const LAYER_OPTIONS = [
   { value: 'border', label: '州境・地域区分' },
@@ -118,6 +126,55 @@ function PropertyDialog({ featureType, onSave, onCancel }) {
   );
 }
 
+function RegionPropertyDialog({ onSave, onCancel }) {
+  const [form, setForm] = useState({ name: '', regionType: 'state' });
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]">
+      <div className="bg-gray-800 rounded-xl shadow-2xl p-6 w-80 border border-gray-700">
+        <h3 className="font-bold text-white text-lg mb-4">領域のプロパティ</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-400 block mb-0.5">名称</label>
+            <input
+              data-1p-ignore
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="領域の名称"
+              className="w-full bg-gray-700 text-white rounded px-2 py-1.5 text-sm border border-gray-600 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-0.5">領域種別</label>
+            <select
+              value={form.regionType}
+              onChange={(e) => setForm({ ...form, regionType: e.target.value })}
+              className="w-full bg-gray-700 text-white rounded px-2 py-1.5 text-sm border border-gray-600 focus:outline-none focus:border-blue-500"
+            >
+              {REGION_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-5">
+          <button
+            onClick={() => onSave(form)}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 text-sm font-medium"
+          >
+            保存
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white rounded-lg py-2 text-sm"
+          >
+            キャンセル
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DrawingTools() {
   const {
     drawingMode,
@@ -125,16 +182,49 @@ export default function DrawingTools() {
     addPendingPoint,
     clearPendingPoints,
     setDrawingMode,
+    features,
+    addingExclaveToRegion,
+    clearAddingExclaveToRegion,
   } = useMapStore();
   const { nickname } = useAuthStore();
+  const map = useMap();
 
   const [dialogState, setDialogState] = useState(null); // { type, latlngs }
   const [mousePos, setMousePos] = useState(null);
+  const [snapPoint, setSnapPoint] = useState(null);
+
+  const REGION_MODES = ['add_region', 'add_exclave'];
+
+  // Snap cursor to nearby existing region vertices
+  const calcSnap = (latlng) => {
+    const cp = map.latLngToContainerPoint(latlng);
+    const regionFeatures = features.filter((f) => f.layerType === 'region');
+    let nearest = null;
+    let minD = SNAP_PX;
+    for (const f of regionFeatures) {
+      for (const poly of (f.polygons ?? [])) {
+        for (const v of (poly.latlngs ?? [])) {
+          const vp = map.latLngToContainerPoint([v.lat, v.lng]);
+          const d = Math.hypot(vp.x - cp.x, vp.y - cp.y);
+          if (d < minD) { minD = d; nearest = [v.lat, v.lng]; }
+        }
+      }
+    }
+    return nearest;
+  };
+
+  const handleExclaveSave = async (latlngs) => {
+    if (!addingExclaveToRegion) return;
+    const newPoly = { latlngs: latlngs.map(([lat, lng]) => ({ lat, lng })) };
+    const updated = [...(addingExclaveToRegion.polygons ?? []), newPoly];
+    await updateFeature(addingExclaveToRegion.id, { polygons: updated, updatedBy: nickname });
+    clearAddingExclaveToRegion();
+    setDrawingMode('select');
+  };
 
   useMapEvents({
     click(e) {
-      if (drawingMode === 'select' || drawingMode === 'delete' ||
-          drawingMode === 'add_city' || drawingMode === 'add_label' || drawingMode === 'add_facility') return;
+      if (['select','delete','add_city','add_label','add_facility'].includes(drawingMode)) return;
 
       if (drawingMode === 'marker') {
         // Store as plain object to avoid Firestore's nested-array restriction
@@ -142,12 +232,13 @@ export default function DrawingTools() {
         return;
       }
 
-      // line / polygon: accumulate points
-      addPendingPoint([e.latlng.lat, e.latlng.lng]);
+      // line / polygon / add_region / add_exclave: accumulate points (snap-aware)
+      const pt = snapPoint ?? [e.latlng.lat, e.latlng.lng];
+      addPendingPoint(pt);
     },
 
     dblclick(e) {
-      if (drawingMode !== 'line' && drawingMode !== 'polygon') return;
+      if (!['line', 'polygon', 'add_region', 'add_exclave'].includes(drawingMode)) return;
       if (pendingPoints.length < 2) return;
 
       // Prevent the map zoom that normally fires on dblclick
@@ -155,12 +246,28 @@ export default function DrawingTools() {
 
       const latlngs = [...pendingPoints];
       clearPendingPoints();
-      setDialogState({ type: drawingMode === 'line' ? 'line' : 'polygon', latlngs });
+      setSnapPoint(null);
+
+      if (drawingMode === 'add_exclave') {
+        handleExclaveSave(latlngs);
+        return;
+      }
+
+      const type = drawingMode === 'line' ? 'line'
+                 : drawingMode === 'polygon' ? 'polygon'
+                 : 'region';
+      setDialogState({ type, latlngs });
     },
 
     mousemove(e) {
-      if (drawingMode === 'line' || drawingMode === 'polygon') {
-        setMousePos([e.latlng.lat, e.latlng.lng]);
+      if (['line', 'polygon', 'add_region', 'add_exclave'].includes(drawingMode)) {
+        if (REGION_MODES.includes(drawingMode)) {
+          const snapped = calcSnap(e.latlng);
+          setSnapPoint(snapped);
+          setMousePos(snapped ?? [e.latlng.lat, e.latlng.lng]);
+        } else {
+          setMousePos([e.latlng.lat, e.latlng.lng]);
+        }
       }
     },
   });
@@ -168,6 +275,24 @@ export default function DrawingTools() {
   const handleSave = async (properties) => {
     if (!dialogState) return;
     const { type } = dialogState;
+
+    // Region polygon → new data model with polygons array
+    if (type === 'region') {
+      const newPoly = { latlngs: dialogState.latlngs.map(([lat, lng]) => ({ lat, lng })) };
+      await addFeature({
+        layerType: 'region',
+        type: 'region',
+        polygons: [newPoly],
+        properties: {
+          name: properties.name,
+          regionType: properties.regionType,
+        },
+        updatedBy: nickname,
+      });
+      setDialogState(null);
+      setDrawingMode('select');
+      return;
+    }
 
     // Build geometry without nested arrays (Firestore does not support them).
     // point  → { latlng: { lat, lng } }
@@ -210,6 +335,8 @@ export default function DrawingTools() {
       ? [...pendingPoints, mousePos]
       : pendingPoints;
 
+  const isRegionMode = REGION_MODES.includes(drawingMode) || drawingMode === 'polygon';
+
   return (
     <>
       {/* Preview while drawing a line */}
@@ -220,8 +347,8 @@ export default function DrawingTools() {
         />
       )}
 
-      {/* Preview while drawing a polygon */}
-      {drawingMode === 'polygon' && previewPositions.length >= 3 && (
+      {/* Preview while drawing a polygon / region / exclave */}
+      {(drawingMode === 'polygon' || REGION_MODES.includes(drawingMode)) && previewPositions.length >= 3 && (
         <Polygon
           positions={previewPositions}
           pathOptions={{ color: '#60A5FA', fillColor: '#60A5FA', fillOpacity: 0.15, weight: 2, dashArray: '6 4' }}
@@ -229,7 +356,7 @@ export default function DrawingTools() {
       )}
 
       {/* Dots for pending points */}
-      {(drawingMode === 'line' || drawingMode === 'polygon') &&
+      {(drawingMode === 'line' || drawingMode === 'polygon' || REGION_MODES.includes(drawingMode)) &&
         pendingPoints.map((pt, i) => (
           <CircleMarker
             key={i}
@@ -239,8 +366,20 @@ export default function DrawingTools() {
           />
         ))}
 
+      {/* Snap indicator — cyan ring at snapped vertex */}
+      {snapPoint && REGION_MODES.includes(drawingMode) && (
+        <CircleMarker
+          center={snapPoint}
+          radius={8}
+          pathOptions={{ color: '#22D3EE', fillColor: '#22D3EE', fillOpacity: 0.25, weight: 2 }}
+        />
+      )}
+
       {/* Property input dialog (rendered outside the map in a portal-like manner) */}
-      {dialogState && (
+      {dialogState && dialogState.type === 'region' && (
+        <RegionPropertyDialog onSave={handleSave} onCancel={handleCancel} />
+      )}
+      {dialogState && dialogState.type !== 'region' && (
         <PropertyDialog
           featureType={dialogState.type}
           onSave={handleSave}

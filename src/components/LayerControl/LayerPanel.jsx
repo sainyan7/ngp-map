@@ -10,6 +10,7 @@ const LAYERS = [
   { key: 'railway',        label: '幹線鉄道',         color: '#1F2937' },
   { key: 'border',          label: '州境線',           color: '#6B7280' },
   { key: 'regional_border', label: '地方境',           color: '#D97706' },
+  { key: 'region',          label: '領域名',           color: '#A78BFA' },
 ];
 
 export default function LayerPanel({ open }) {

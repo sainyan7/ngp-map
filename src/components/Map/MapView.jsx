@@ -16,6 +16,7 @@ import DiplomaticLines from './DiplomaticLines';
 import PlaceNameLayer from './PlaceNameLayer';
 import MeasureTool from './MeasureTool';
 import WhiteboardLayer from './WhiteboardLayer';
+import RegionEditLayer from './RegionEditLayer';
 
 // Fix Leaflet default marker icons broken by Vite's asset bundling
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -77,6 +78,7 @@ function MapInner() {
       <DiplomaticLines />
       <MeasureTool />
       <WhiteboardLayer />
+      <RegionEditLayer />
       <MapFlyTo />
       <SearchHighlightMarker />
     </>

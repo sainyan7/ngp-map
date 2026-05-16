@@ -32,16 +32,20 @@ export async function deleteStrokeById(id) {
 export async function deleteMyStrokes(userId) {
   const q = query(collection(db, COL), where('userId', '==', userId));
   const snap = await getDocs(q);
+  const strokes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const batch = writeBatch(db);
   snap.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
+  return strokes;
 }
 
 export async function deleteAllStrokes() {
   const snap = await getDocs(collection(db, COL));
+  const strokes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const batch = writeBatch(db);
   snap.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
+  return strokes;
 }
 
 export async function updateLiveStroke(userId, nickname, color, points) {

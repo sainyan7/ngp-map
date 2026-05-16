@@ -11,6 +11,7 @@ const useMapStore = create((set, get) => ({
     railway:         true,
     border:          true,
     regional_border: true,
+    region:          true,
     diplomatic:      false,
     features:        false,
   },
@@ -21,7 +22,11 @@ const useMapStore = create((set, get) => ({
 
   // ── Drawing tool state ──────────────────────────────────────────────────────
   drawingMode: 'select',
-  setDrawingMode: (mode) => set({ drawingMode: mode, pendingPoints: [] }),
+  setDrawingMode: (mode) => set({ drawingMode: mode, pendingPoints: [], whiteboardTool: 'pen' }),
+
+  // ── Whiteboard sub-tool ('pen' | 'eraser') ────────────────────────────────
+  whiteboardTool: 'pen',
+  setWhiteboardTool: (tool) => set({ whiteboardTool: tool }),
 
   pendingPoints: [],
   addPendingPoint: (latlng) =>
@@ -89,6 +94,10 @@ const useMapStore = create((set, get) => ({
   factions: [],
   setFactions: (factions) => set({ factions }),
 
+  // ── Whiteboard visibility toggle ──────────────────────────────────────────
+  showWhiteboard: true,
+  toggleShowWhiteboard: () => set((state) => ({ showWhiteboard: !state.showWhiteboard })),
+
   // ── Ruby (furigana) display toggle ────────────────────────────────────────
   showRuby: false,
   toggleRuby: () => set((state) => ({ showRuby: !state.showRuby })),
@@ -141,6 +150,21 @@ const useMapStore = create((set, get) => ({
     })),
   clearAllPendingWhiteboardStrokes: () => set({ pendingWhiteboardStrokes: [] }),
 
+  // ── Region vertex editing ─────────────────────────────────────────────────
+  editingRegion: null,
+  editingRegionPolygons: [],
+  setEditingRegion: (f) => set({
+    editingRegion: f,
+    editingRegionPolygons: (f.polygons ?? []).map((p) => p.latlngs.map((v) => [v.lat, v.lng])),
+  }),
+  setEditingRegionPolygons: (polys) => set({ editingRegionPolygons: polys }),
+  clearEditingRegion: () => set({ editingRegion: null, editingRegionPolygons: [] }),
+
+  // ── Region exclave drawing ────────────────────────────────────────────────
+  addingExclaveToRegion: null,
+  setAddingExclaveToRegion: (f) => set({ addingExclaveToRegion: f, drawingMode: 'add_exclave' }),
+  clearAddingExclaveToRegion: () => set({ addingExclaveToRegion: null }),
+
   // ── Undo / Redo history ───────────────────────────────────────────────────
   // Each entry: { label: string, undoFn: async () => void, redoFn: async () => void }
   historyStack: [],
@@ -149,6 +173,7 @@ const useMapStore = create((set, get) => ({
     historyStack: [...s.historyStack.slice(-49), entry],
     futureStack: [],
   })),
+  replaceHistoryWithEntry: (entry) => set({ historyStack: [entry], futureStack: [] }),
   performUndo: async () => {
     const { historyStack, futureStack } = get();
     if (historyStack.length === 0) return;
