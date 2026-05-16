@@ -15,10 +15,13 @@ export const REGION_TYPE_COLORS = {
   state:       '#A78BFA',
   region:      '#34D399',
   county:      '#60A5FA',
-  island:      '#F97316',
-  archipelago: '#0EA5E9',
+  island:      '#A7F3D0',  // matches PlaceNameLayer category 'island'
+  archipelago: '#6EE7B7',  // matches PlaceNameLayer category 'archipelago'
   other:       '#F59E0B',
 };
+
+// Base font sizes for island/archipelago matching PlaceNameLayer CATEGORY_STYLE
+const ISLAND_BASE_FONT = { island: 12, archipelago: 13 };
 
 // Bounding-box center is more visually centered than vertex average,
 // especially for non-convex or vertex-heavy polygons.
@@ -46,6 +49,7 @@ export default function FeatureLayer() {
     features, layers, regionTypeFilters,
     setSelectedFeature, selectedFeature, editingRegion,
     regionMergeMode, regionMergeTargetType, regionMergeSelection, toggleRegionMergeSelection,
+    assigningRegionToPlaceName, commitRegionIdForPlaceName,
   } = useMapStore();
 
   // Font size scales linearly with zoom (Simple CRS: ~-5 at full view, 0+ when zoomed in)
@@ -96,11 +100,22 @@ export default function FeatureLayer() {
             ? [feature.labelLatLng.lat, feature.labelLatLng.lng]
             : bboxCenter;
 
+          // island/archipelago use PlaceNameLayer zoom formula for font + opacity.
+          // Other region types use the linear formula already applied to `fontSize`.
+          let labelFontSize = fontSize;
+          let labelOpacity  = 1;
+          if (rt === 'island' || rt === 'archipelago') {
+            const minZ = map.getMinZoom();
+            const t    = Math.max(0, Math.min(1.0, (zoom - minZ) / 5));
+            labelFontSize = Math.max(8, Math.round(ISLAND_BASE_FONT[rt] * (0.3 + 1.05 * t)));
+            labelOpacity  = 0.4 + 0.6 * t;
+          }
+
           // Estimate a hitbox wide enough for the text so Leaflet can handle drag events.
           // iconSize must be non-zero; iconAnchor centers the box on the label position.
           const name = properties?.name || '';
-          const boxW = Math.max(80, Math.min(500, name.length * fontSize * 0.65 + 24));
-          const boxH = Math.ceil(fontSize * 2.2);
+          const boxW = Math.max(80, Math.min(500, name.length * labelFontSize * 0.65 + 24));
+          const boxH = Math.ceil(labelFontSize * 2.2);
 
           const icon = L.divIcon({
             className: 'region-label-icon',
@@ -112,8 +127,9 @@ export default function FeatureLayer() {
               justify-content:center;
               cursor:${regionMergeMode ? 'default' : 'grab'};
               user-select:none;
+              opacity:${labelOpacity.toFixed(2)};
             "><span style="
-              font-size:${fontSize}px;
+              font-size:${labelFontSize}px;
               font-weight:bold;
               color:${regionColor};
               text-shadow:0 0 6px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95);
@@ -127,6 +143,11 @@ export default function FeatureLayer() {
           // Click behaviour depends on mode
           const onRegionClick = (e) => {
             e.originalEvent?.stopPropagation?.();
+            // Place-name region assignment mode: capture this region's ID
+            if (assigningRegionToPlaceName) {
+              commitRegionIdForPlaceName(id);
+              return;
+            }
             if (regionMergeMode) {
               if (isMergeCompatible) toggleRegionMergeSelection(feature);
               return; // Never open popup while in merge mode
@@ -137,11 +158,11 @@ export default function FeatureLayer() {
           // Polygon visual settings (merge mode overrides selection style)
           let fillOpacity = isSelected ? 0.18 : 0;
           let weight      = isSelected ? 2 : 1.5;
-          let opacity     = 1;
+          let opacity     = labelOpacity;  // island/archipelago fade with zoom
           if (regionMergeMode) {
-            if (isMergeSelected)       { fillOpacity = 0.45; weight = 3; }
-            else if (isMergeCompatible){ fillOpacity = 0;    weight = 2; }
-            else                       { opacity = 0.25; }
+            if (isMergeSelected)       { fillOpacity = 0.45; weight = 3; opacity = 1; }
+            else if (isMergeCompatible){ fillOpacity = 0;    weight = 2; opacity = 1; }
+            else                       { opacity = Math.min(opacity, 0.25); }
           }
 
           return (

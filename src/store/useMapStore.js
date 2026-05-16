@@ -137,6 +137,19 @@ const useMapStore = create((set, get) => ({
     })),
   clearRegionMerge: () => set({ regionMergeMode: false, regionMergeTargetType: null, regionMergeSelection: [] }),
 
+  // ── Place name → region assignment mode ──────────────────────────────────
+  // Used when the user clicks "地図から選択" in PlaceNameEditPopup.
+  // FeatureLayer watches this flag: clicking a region calls commitRegionIdForPlaceName.
+  assigningRegionToPlaceName: false,
+  startAssigningRegionToPlaceName: () => set({ assigningRegionToPlaceName: true }),
+  pendingRegionIdForPlaceName: null,
+  commitRegionIdForPlaceName: (regionId) => set({
+    pendingRegionIdForPlaceName: regionId,
+    assigningRegionToPlaceName: false,
+  }),
+  clearPendingRegionIdForPlaceName: () => set({ pendingRegionIdForPlaceName: null }),
+  cancelAssigningRegionToPlaceName: () => set({ assigningRegionToPlaceName: false }),
+
   // ── Region type sub-filters ───────────────────────────────────────────────
   regionTypeFilters: { state: true, region: true, county: true, island: true, archipelago: true, other: true },
   toggleRegionTypeFilter: (key) =>

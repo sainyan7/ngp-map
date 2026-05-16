@@ -400,14 +400,18 @@ export default function DrawingTools() {
         />
       )}
 
-      {/* Dots for pending points */}
+      {/* Dots for pending points — first point is amber to mark the start */}
       {(drawingMode === 'line' || drawingMode === 'polygon' || REGION_MODES.includes(drawingMode)) &&
         pendingPoints.map((pt, i) => (
           <CircleMarker
             key={i}
             center={pt}
-            radius={4}
-            pathOptions={{ color: '#60A5FA', fillColor: '#60A5FA', fillOpacity: 1, weight: 1 }}
+            radius={i === 0 ? 6 : 4}
+            pathOptions={
+              i === 0
+                ? { color: '#F59E0B', fillColor: '#F59E0B', fillOpacity: 1, weight: 2 }
+                : { color: '#60A5FA', fillColor: '#60A5FA', fillOpacity: 1, weight: 1 }
+            }
           />
         ))}
 

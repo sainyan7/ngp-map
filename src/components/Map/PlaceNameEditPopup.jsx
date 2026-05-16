@@ -128,11 +128,15 @@ export default function PlaceNameEditPopup() {
     placeNameDragEnabled, setPlaceNameDragEnabled,
     showRuby,
     pushHistory,
+    features,
+    assigningRegionToPlaceName, startAssigningRegionToPlaceName, cancelAssigningRegionToPlaceName,
+    pendingRegionIdForPlaceName, clearPendingRegionIdForPlaceName,
   } = useMapStore();
   const [form, setForm]     = useState({
     name: '', category: 'other',
     layout: 'horizontal', archHeight: 15, archUp: true,
     tilt: 0, ruby: '', letterSpacing: '',
+    regionId: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
@@ -148,11 +152,20 @@ export default function PlaceNameEditPopup() {
         tilt:          selectedPlaceName.tilt          ?? 0,
         ruby:          selectedPlaceName.ruby          ?? '',
         letterSpacing: selectedPlaceName.letterSpacing ?? '',
+        regionId:      selectedPlaceName.regionId      ?? '',
       });
       setError('');
       setPlaceNameDragEnabled(false);
     }
   }, [selectedPlaceName?.id]);
+
+  // When FeatureLayer commits a region pick, update the form
+  useEffect(() => {
+    if (pendingRegionIdForPlaceName) {
+      setForm((f) => ({ ...f, regionId: pendingRegionIdForPlaceName }));
+      clearPendingRegionIdForPlaceName();
+    }
+  }, [pendingRegionIdForPlaceName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!selectedPlaceName) return null;
 
@@ -167,6 +180,7 @@ export default function PlaceNameEditPopup() {
         layout: form.layout, archHeight: form.archHeight, archUp: form.archUp,
         tilt: form.tilt, ruby: form.ruby,
         letterSpacing: form.letterSpacing,
+        regionId: form.regionId || null,
       };
       if (selectedPlaceName.id) {
         const id = selectedPlaceName.id;
@@ -416,6 +430,44 @@ export default function PlaceNameEditPopup() {
               リセット
             </button>
           )}
+        </div>
+
+        {/* Linked region */}
+        <div>
+          <label className="text-xs text-gray-400">関連領域</label>
+          {(() => {
+            const linked = form.regionId
+              ? features.find((f) => f.id === form.regionId)
+              : null;
+            if (assigningRegionToPlaceName) {
+              return (
+                <div className="mt-0.5 flex items-center gap-1">
+                  <span className="flex-1 text-xs text-amber-400 animate-pulse">地図上の領域をクリック…</span>
+                  <button
+                    onClick={cancelAssigningRegionToPlaceName}
+                    className="text-xs text-gray-400 hover:text-white px-1"
+                  >キャンセル</button>
+                </div>
+              );
+            }
+            return (
+              <div className="mt-0.5 flex items-center gap-1">
+                <span className="flex-1 text-xs text-gray-300 truncate">
+                  {linked ? linked.properties?.name || '名称未設定' : '未設定'}
+                </span>
+                <button
+                  onClick={startAssigningRegionToPlaceName}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded px-1.5 py-0.5 shrink-0"
+                >地図から選択</button>
+                {linked && (
+                  <button
+                    onClick={() => setForm((f) => ({ ...f, regionId: '' }))}
+                    className="text-xs text-gray-500 hover:text-red-400 px-1"
+                  >解除</button>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Position drag toggle */}
