@@ -184,17 +184,32 @@ export default function DrawingTools() {
     addPendingPoint,
     removeLastPendingPoint,
     clearPendingPoints,
+    setPendingPoints,
     setDrawingMode,
     features,
     addingExclaveToRegion,
     clearAddingExclaveToRegion,
+    pickingExistingRegion,
+    startPickingExistingRegion,
+    cancelPickingExistingRegion,
+    pickedPolygonPositions,
+    clearPickedPolygon,
   } = useMapStore();
   const { nickname } = useAuthStore();
   const map = useMap();
 
-  const [dialogState, setDialogState] = useState(null); // { type, latlngs }
+  const [dialogState, setDialogState] = useState(null);   // { type, latlngs, polygons? }
+  const [confirmState, setConfirmState] = useState(null); // { type, latlngs } — pending confirmation
+  const [pendingPolygons, setPendingPolygons] = useState([]); // accumulated multi-polygon batch
   const [mousePos, setMousePos] = useState(null);
   const [snapPoint, setSnapPoint] = useState(null);
+
+  // When FeatureLayer commits a picked polygon, absorb it into pendingPolygons
+  useEffect(() => {
+    if (!pickedPolygonPositions) return;
+    setPendingPolygons((prev) => [...prev, pickedPolygonPositions]);
+    clearPickedPolygon();
+  }, [pickedPolygonPositions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const REGION_MODES = ['add_region', 'add_exclave'];
 
@@ -223,6 +238,62 @@ export default function DrawingTools() {
     await updateFeature(addingExclaveToRegion.id, { polygons: updated, updatedBy: nickname });
     clearAddingExclaveToRegion();
     setDrawingMode('select');
+  };
+
+  // Confirm the drawn shape → open property dialog (or save exclave directly)
+  const handleConfirm = () => {
+    if (!confirmState && pendingPolygons.length === 0) return;
+    // Multi-polygon: merge the current confirmed shape with the already-accumulated batch
+    if (pendingPolygons.length > 0) {
+      const allPolys = [...pendingPolygons, ...(confirmState ? [confirmState.latlngs] : [])];
+      setDialogState({ type: 'region', latlngs: allPolys[0], polygons: allPolys });
+      setPendingPolygons([]);
+      cancelPickingExistingRegion();
+      setConfirmState(null);
+      return;
+    }
+    // Single polygon (original flow)
+    if (confirmState.type === 'add_exclave') {
+      handleExclaveSave(confirmState.latlngs);
+    } else {
+      setDialogState({ type: confirmState.type, latlngs: confirmState.latlngs });
+    }
+    setConfirmState(null);
+  };
+
+  // "確定して次のポリゴンを追加" — save current shape to batch, enter pick/draw mode
+  const handleAddAnotherPolygon = () => {
+    if (!confirmState) return;
+    setPendingPolygons((prev) => [...prev, confirmState.latlngs]);
+    setConfirmState(null);
+    clearPendingPoints();
+    // Enter pick mode so the user can also click an existing region polygon
+    startPickingExistingRegion();
+  };
+
+  // "確定する" from the hint banner — finalize all accumulated polygons
+  const handleFinalConfirm = () => {
+    if (pendingPolygons.length === 0) return;
+    setDialogState({ type: 'region', latlngs: pendingPolygons[0], polygons: pendingPolygons });
+    setPendingPolygons([]);
+    cancelPickingExistingRegion();
+  };
+
+  // Cancel the entire multi-polygon session
+  const handleCancelMulti = () => {
+    setPendingPolygons([]);
+    setConfirmState(null);
+    cancelPickingExistingRegion();
+    clearPendingPoints();
+    setDrawingMode('select');
+  };
+
+  // Continue editing → restore pending points to the state just before dblclick
+  const handleContinueEditing = () => {
+    if (!confirmState) return;
+    setPendingPoints(confirmState.latlngs);
+    setConfirmState(null);
+    cancelPickingExistingRegion();
   };
 
   const DRAWING_MODES = ['line', 'polygon', 'add_region', 'add_exclave'];
@@ -259,6 +330,8 @@ export default function DrawingTools() {
   useMapEvents({
     click(e) {
       if (['select','delete','add_city','add_label','add_facility'].includes(drawingMode)) return;
+      if (confirmState) return; // Don't add points while waiting for confirmation
+      if (pickingExistingRegion) return; // FeatureLayer handles clicks in pick mode
 
       if (drawingMode === 'marker') {
         // Store as plain object to avoid Firestore's nested-array restriction
@@ -286,15 +359,12 @@ export default function DrawingTools() {
       clearPendingPoints();
       setSnapPoint(null);
 
-      if (drawingMode === 'add_exclave') {
-        handleExclaveSave(latlngs);
-        return;
-      }
-
+      // Show confirmation panel instead of immediately opening the property dialog
       const type = drawingMode === 'line' ? 'line'
                  : drawingMode === 'polygon' ? 'polygon'
+                 : drawingMode === 'add_exclave' ? 'add_exclave'
                  : 'region';
-      setDialogState({ type, latlngs });
+      setConfirmState({ type, latlngs });
     },
 
     contextmenu(e) {
@@ -321,13 +391,16 @@ export default function DrawingTools() {
     if (!dialogState) return;
     const { type } = dialogState;
 
-    // Region polygon → new data model with polygons array
+    // Region polygon → new data model with polygons array.
+    // dialogState.polygons is set when multiple polygons were accumulated.
     if (type === 'region') {
-      const newPoly = { latlngs: dialogState.latlngs.map(([lat, lng]) => ({ lat, lng })) };
+      const polygonsData = (dialogState.polygons ?? [dialogState.latlngs]).map(
+        (poly) => ({ latlngs: poly.map(([lat, lng]) => ({ lat, lng })) }),
+      );
       await addFeature({
         layerType: 'region',
         type: 'region',
-        polygons: [newPoly],
+        polygons: polygonsData,
         properties: {
           name: properties.name,
           regionType: properties.regionType,
@@ -422,6 +495,95 @@ export default function DrawingTools() {
           radius={8}
           pathOptions={{ color: '#22D3EE', fillColor: '#22D3EE', fillOpacity: 0.25, weight: 2 }}
         />
+      )}
+
+      {/* Accumulated pending polygons preview (green tint) */}
+      {pendingPolygons.map((poly, i) => (
+        <Polygon
+          key={`pp-${i}`}
+          positions={poly}
+          pathOptions={{ color: '#34D399', fillColor: '#34D399', fillOpacity: 0.12, weight: 1.5 }}
+        />
+      ))}
+
+      {/* Preview polygon/line while in confirm state */}
+      {confirmState && confirmState.latlngs.length >= 2 && (
+        confirmState.type === 'line'
+          ? <Polyline
+              positions={confirmState.latlngs}
+              pathOptions={{ color: '#60A5FA', weight: 2, dashArray: '6 4', opacity: 0.9 }}
+            />
+          : <Polygon
+              positions={confirmState.latlngs}
+              pathOptions={{ color: '#60A5FA', fillColor: '#60A5FA', fillOpacity: 0.18, weight: 2, dashArray: '6 4' }}
+            />
+      )}
+
+      {/* Confirmation panel — shown after dblclick, before property dialog */}
+      {confirmState && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[1000]
+                        bg-gray-800 border border-gray-600 rounded-xl shadow-2xl
+                        px-5 py-3 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-gray-300">
+            {pendingPolygons.length > 0 ? `${pendingPolygons.length + 1}個目 — ` : ''}描画を確定しますか？
+          </span>
+          <button
+            onClick={handleConfirm}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg px-4 py-1.5 whitespace-nowrap"
+          >
+            確定する
+          </button>
+          <button
+            onClick={handleContinueEditing}
+            className="bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg px-4 py-1.5 whitespace-nowrap"
+          >
+            編集を続ける
+          </button>
+          {(drawingMode === 'add_region' || drawingMode === 'polygon') && (
+            <button
+              onClick={handleAddAnotherPolygon}
+              className="bg-teal-700 hover:bg-teal-600 text-white text-sm rounded-lg px-4 py-1.5 whitespace-nowrap"
+            >
+              確定して次のポリゴンを追加
+            </button>
+          )}
+          {pendingPolygons.length > 0 && (
+            <button
+              onClick={handleCancelMulti}
+              className="bg-red-800 hover:bg-red-700 text-white text-sm rounded-lg px-3 py-1.5 whitespace-nowrap"
+            >
+              キャンセル
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Hint banner — shown when polygons are accumulated but no confirm panel is visible */}
+      {pendingPolygons.length > 0 && !confirmState && !dialogState && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[1000]
+                        bg-gray-800 border border-teal-600 rounded-xl shadow-2xl
+                        px-5 py-3 flex flex-col gap-2 min-w-[280px]">
+          <span className="text-teal-300 text-sm font-medium">
+            {pendingPolygons.length}個のポリゴン追加済み
+          </span>
+          <span className="text-xs text-gray-400">
+            既存の領域を1ポリゴンずつクリック、または点を打って新規追加できます
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={handleFinalConfirm}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg px-4 py-1.5"
+            >
+              確定する
+            </button>
+            <button
+              onClick={handleCancelMulti}
+              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg px-4 py-1.5"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Property input dialog (rendered outside the map in a portal-like manner) */}

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import L from 'leaflet';
-import { Marker, Polygon, CircleMarker } from 'react-leaflet';
+import { useMap, Marker, Polygon, CircleMarker } from 'react-leaflet';
 import useMapStore from '../../store/useMapStore';
 import useAuthStore from '../../store/useAuthStore';
 import { updateFeature } from '../../firebase/features';
+
+const SNAP_PX = 15;
 
 // Draggable vertex icon
 const makeVertexIcon = (active = false) =>
@@ -35,9 +37,30 @@ export default function RegionEditLayer() {
     editingRegionPolygons,
     setEditingRegionPolygons,
     clearEditingRegion,
+    features,
   } = useMapStore();
   const { nickname } = useAuthStore();
+  const map = useMap();
   const [saving, setSaving] = useState(false);
+
+  // Snap dragend position to nearest vertex of any OTHER region within SNAP_PX pixels
+  const calcSnap = (latlng) => {
+    const cp = map.latLngToContainerPoint(latlng);
+    let nearest = null;
+    let minD = SNAP_PX;
+    for (const f of features) {
+      if (f.layerType !== 'region') continue;
+      if (f.id === editingRegion?.id) continue; // skip self
+      for (const poly of (f.polygons ?? [])) {
+        for (const v of (poly.latlngs ?? [])) {
+          const vp = map.latLngToContainerPoint([v.lat, v.lng]);
+          const d = Math.hypot(vp.x - cp.x, vp.y - cp.y);
+          if (d < minD) { minD = d; nearest = [v.lat, v.lng]; }
+        }
+      }
+    }
+    return nearest;
+  };
 
   if (!editingRegion) return null;
 
@@ -119,7 +142,11 @@ export default function RegionEditLayer() {
                 eventHandlers={{
                   dragend: (e) => {
                     const ll = e.target.getLatLng();
-                    moveVertex(polyIdx, vIdx, ll.lat, ll.lng);
+                    const snapped = calcSnap(ll);
+                    moveVertex(polyIdx, vIdx,
+                      snapped ? snapped[0] : ll.lat,
+                      snapped ? snapped[1] : ll.lng,
+                    );
                   },
                   contextmenu: (e) => {
                     e.originalEvent?.preventDefault();

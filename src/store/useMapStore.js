@@ -34,6 +34,7 @@ const useMapStore = create((set, get) => ({
   removeLastPendingPoint: () =>
     set((state) => ({ pendingPoints: state.pendingPoints.slice(0, -1) })),
   clearPendingPoints: () => set({ pendingPoints: [] }),
+  setPendingPoints: (pts) => set({ pendingPoints: pts }),
 
   // ── Data from Firestore (real-time) ─────────────────────────────────────────
   features: [],
@@ -208,6 +209,20 @@ const useMapStore = create((set, get) => ({
   addingExclaveToRegion: null,
   setAddingExclaveToRegion: (f) => set({ addingExclaveToRegion: f, drawingMode: 'add_exclave' }),
   clearAddingExclaveToRegion: () => set({ addingExclaveToRegion: null }),
+
+  // ── Pick-existing-region mode ─────────────────────────────────────────────
+  // Activated from DrawingTools when the user wants to add an already-drawn
+  // region polygon (including individual exclaves) to the multi-polygon batch.
+  // FeatureLayer intercepts polygon clicks and calls commitPickedPolygon.
+  pickingExistingRegion: false,
+  startPickingExistingRegion: () => set({ pickingExistingRegion: true }),
+  cancelPickingExistingRegion: () => set({ pickingExistingRegion: false }),
+  pickedPolygonPositions: null,  // [[lat, lng], ...] of the clicked polygon
+  commitPickedPolygon: (positions) => set({
+    pickedPolygonPositions: positions,
+    pickingExistingRegion: false,
+  }),
+  clearPickedPolygon: () => set({ pickedPolygonPositions: null }),
 
   // ── Undo / Redo history ───────────────────────────────────────────────────
   // Each entry: { label: string, undoFn: async () => void, redoFn: async () => void }

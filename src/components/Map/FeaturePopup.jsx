@@ -32,7 +32,7 @@ const MERGE_CONFIG = {
 };
 
 export default function FeaturePopup() {
-  const { selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion, startRegionMerge } = useMapStore();
+  const { selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion, startRegionMerge, features } = useMapStore();
   const { nickname } = useAuthStore();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({});
@@ -41,6 +41,8 @@ export default function FeaturePopup() {
   if (!selectedFeature) return null;
 
   const { id, layerType, properties = {} } = selectedFeature;
+  // Use live feature from store so labelLatLng reflects post-drag state
+  const liveFeature = features.find((f) => f.id === id);
   const isRegion = layerType === 'region';
 
   const startEdit = () => {
@@ -139,7 +141,7 @@ export default function FeaturePopup() {
                 {MERGE_CONFIG[properties.regionType].label}
               </button>
             )}
-            {isRegion && selectedFeature.labelLatLng && (
+            {isRegion && liveFeature?.labelLatLng && (
               <button
                 onClick={async () => {
                   await updateFeature(id, { labelLatLng: null });

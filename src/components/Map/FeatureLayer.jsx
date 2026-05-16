@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import { useMap, useMapEvents, CircleMarker, Marker, Polyline, Polygon, Tooltip } from 'react-leaflet';
 import useMapStore from '../../store/useMapStore';
@@ -23,6 +23,35 @@ export const REGION_TYPE_COLORS = {
 // Base font sizes for island/archipelago matching PlaceNameLayer CATEGORY_STYLE
 const ISLAND_BASE_FONT = { island: 12, archipelago: 13 };
 
+// Minimum zoom offset per region type — labels below (minZ + offset) are hidden.
+// Polygons always render regardless of zoom.
+// Hierarchy: 地方/諸島 (0, always) > 州/島 (1) > 郡・市域/その他 (2, lowest)
+const REGION_MIN_ZOOM_OFFSET = {
+  region:      0,
+  archipelago: 0,
+  state:       1,
+  island:      1,
+  county:      2,
+  other:       2,
+};
+
+// Area thresholds for state label zoom (coordinate-space square units, MAP=4000×6008)
+const STATE_AREA_LARGE  = 300000; // large state → show at minZ+1 (unchanged)
+const STATE_AREA_MEDIUM =  80000; // medium state → show at minZ+2
+// smaller → show at minZ+3
+
+// Shoelace formula — returns absolute area
+function polyArea(positions) {
+  const n = positions.length;
+  let area = 0;
+  for (let i = 0; i < n; i++) {
+    const [lat1, lng1] = positions[i];
+    const [lat2, lng2] = positions[(i + 1) % n];
+    area += lat1 * lng2 - lat2 * lng1;
+  }
+  return Math.abs(area) / 2;
+}
+
 // Bounding-box center is more visually centered than vertex average,
 // especially for non-convex or vertex-heavy polygons.
 function polygonBBoxCenter(positions) {
@@ -35,6 +64,78 @@ function polygonBBoxCenter(positions) {
     if (lng > maxLng) maxLng = lng;
   }
   return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
+}
+
+// Canonical key for an undirected edge so that A→B and B→A produce the same key.
+function edgeKey(lat1, lng1, lat2, lng2) {
+  const a = `${lat1.toFixed(6)},${lng1.toFixed(6)}`;
+  const b = `${lat2.toFixed(6)},${lng2.toFixed(6)}`;
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+// Split a polygon's perimeter into runs of consecutive shared / non-shared edges.
+// Returns [{ pts: [[lat,lng],...], isShared: bool }, ...]
+// Consecutive same-type edges are merged into a single segment (fewer Polylines).
+function getEdgeSegments(positions, sharedEdgeSet) {
+  const n = positions.length;
+  if (n < 3) return [];
+
+  // Classify each edge i → (i+1)%n
+  const isShared = positions.map((p, i) => {
+    const q = positions[(i + 1) % n];
+    return sharedEdgeSet.has(edgeKey(p[0], p[1], q[0], q[1]));
+  });
+
+  // Find a seam where type changes so the first segment isn't split across wrap-around.
+  let seam = 0;
+  for (let i = 0; i < n; i++) {
+    if (isShared[i] !== isShared[(i - 1 + n) % n]) { seam = i; break; }
+  }
+
+  const result = [];
+  let curShared = isShared[seam];
+  let pts = [positions[seam]];
+
+  for (let step = 0; step < n; step++) {
+    const j = (seam + step + 1) % n;
+    pts.push(positions[j]);
+    // If the NEXT edge type differs from the current run, emit and start a new segment.
+    if (isShared[j] !== curShared) {
+      result.push({ pts: [...pts], isShared: curShared });
+      curShared = isShared[j];
+      pts = [positions[j]]; // Junction point starts the next segment
+    }
+  }
+  if (pts.length >= 2) result.push({ pts, isShared: curShared });
+
+  return result;
+}
+
+// RegionLabel — extracted so it can hold optimistic drag position in local state.
+// Without this, React-Leaflet resets the Leaflet marker's position to the stale
+// prop value before Firestore confirms the update, causing visible snap-back.
+function RegionLabel({ feature, labelPos, icon, regionMergeMode, onRegionClick }) {
+  const [optimisticPos, setOptimisticPos] = useState(null);
+  const pos = optimisticPos ?? labelPos;
+
+  // Clear optimistic position once Firestore confirms (labelLatLng prop changes)
+  useEffect(() => { setOptimisticPos(null); }, [feature.labelLatLng]);
+
+  return (
+    <Marker
+      position={pos}
+      icon={icon}
+      draggable={!regionMergeMode}
+      eventHandlers={{
+        click: onRegionClick,
+        dragend: (e) => {
+          const ll = e.target.getLatLng();
+          setOptimisticPos([ll.lat, ll.lng]); // Immediate optimistic update
+          updateFeature(feature.id, { labelLatLng: { lat: ll.lat, lng: ll.lng } });
+        },
+      }}
+    />
+  );
 }
 
 export default function FeatureLayer() {
@@ -50,10 +151,38 @@ export default function FeatureLayer() {
     setSelectedFeature, selectedFeature, editingRegion,
     regionMergeMode, regionMergeTargetType, regionMergeSelection, toggleRegionMergeSelection,
     assigningRegionToPlaceName, commitRegionIdForPlaceName,
+    placeNames,
+    pickingExistingRegion, commitPickedPolygon,
   } = useMapStore();
 
   // Font size scales linearly with zoom (Simple CRS: ~-5 at full view, 0+ when zoomed in)
   const fontSize = Math.max(7, Math.min(20, 13 + zoom));
+
+  // Build the set of shared edges across all visible region polygons.
+  // An edge appearing in 2+ polygons is "shared" and should render as dashed.
+  const sharedEdgeSet = useMemo(() => {
+    const counts = new Map();
+    for (const f of features) {
+      if (f.type !== 'region') continue;
+      if (!layers[f.layerType]) continue;
+      const rt = f.properties?.regionType ?? 'other';
+      if (!regionTypeFilters[rt]) continue;
+      if (editingRegion?.id === f.id) continue;
+      for (const poly of (f.polygons ?? [])) {
+        const verts = poly.latlngs;
+        const n = verts.length;
+        for (let i = 0; i < n; i++) {
+          const p1 = verts[i];
+          const p2 = verts[(i + 1) % n];
+          const k = edgeKey(p1.lat, p1.lng, p2.lat, p2.lng);
+          counts.set(k, (counts.get(k) ?? 0) + 1);
+        }
+      }
+    }
+    const shared = new Set();
+    for (const [k, c] of counts) if (c > 1) shared.add(k);
+    return shared;
+  }, [features, layers, regionTypeFilters, editingRegion]);
 
   return (
     <>
@@ -102,14 +231,34 @@ export default function FeatureLayer() {
 
           // island/archipelago use PlaceNameLayer zoom formula for font + opacity.
           // Other region types use the linear formula already applied to `fontSize`.
+          const minZ = map.getMinZoom();
           let labelFontSize = fontSize;
           let labelOpacity  = 1;
           if (rt === 'island' || rt === 'archipelago') {
-            const minZ = map.getMinZoom();
             const t    = Math.max(0, Math.min(1.0, (zoom - minZ) / 5));
             labelFontSize = Math.max(8, Math.round(ISLAND_BASE_FONT[rt] * (0.3 + 1.05 * t)));
             labelOpacity  = 0.4 + 0.6 * t;
           }
+
+          // Zoom-based hierarchy: hide lower-tier labels when zoomed out.
+          // For state regions, use area-based dynamic threshold; others use static offsets.
+          // Polygons always render regardless. Linked place names suppress label too.
+          let zoomOffset = REGION_MIN_ZOOM_OFFSET[rt] ?? 0;
+          if (rt === 'state') {
+            const totalArea = polys.reduce((sum, poly) => {
+              const pos = poly.latlngs.map((p) => [p.lat, p.lng]);
+              return sum + polyArea(pos);
+            }, 0);
+            // Reduced by 1 step vs previous: labels appear at one zoom level wider.
+            zoomOffset = totalArea >= STATE_AREA_LARGE  ? 0
+                       : totalArea >= STATE_AREA_MEDIUM ? 1
+                       : 2;
+          }
+          // State labels appear at wider zoom → slightly smaller font to reduce crowding
+          if (rt === 'state') labelFontSize = Math.max(7, Math.round(labelFontSize * 0.85));
+
+          const showLabel          = zoom >= minZ + zoomOffset;
+          const hasLinkedPlaceName = placeNames.some((pn) => pn.regionId === id);
 
           // Estimate a hitbox wide enough for the text so Leaflet can handle drag events.
           // iconSize must be non-zero; iconAnchor centers the box on the label position.
@@ -170,36 +319,66 @@ export default function FeatureLayer() {
               {polys.map((poly, idx) => {
                 const positions = poly.latlngs.map((p) => [p.lat, p.lng]);
                 if (positions.length < 3) return null;
-                return (
-                  <Polygon
-                    key={`${id}-${idx}`}
-                    positions={positions}
-                    pathOptions={{
-                      color: regionColor,
-                      fillColor: regionColor,
-                      fillOpacity,
-                      weight,
-                      opacity,
-                      dashArray: '5 4',
-                    }}
-                    eventHandlers={{ click: onRegionClick }}
-                  />
+
+                // Split perimeter into shared (dashed) and non-shared (solid) runs.
+                const segments = getEdgeSegments(positions, sharedEdgeSet);
+
+                // Per-polygon click: in pick mode, commit exactly this polygon's positions
+              const handlePolyClick = (e) => {
+                e.originalEvent?.stopPropagation?.();
+                if (pickingExistingRegion) {
+                  commitPickedPolygon(positions);
+                  return;
+                }
+                onRegionClick(e);
+              };
+
+              return (
+                  <React.Fragment key={`${id}-${idx}`}>
+                    {/* Fill + pointer-event capture — no stroke (weight: 0).
+                        fillOpacity min 0.001 so SVG pointer-events still fire. */}
+                    <Polygon
+                      positions={positions}
+                      pathOptions={{
+                        color: regionColor,
+                        fillColor: regionColor,
+                        fillOpacity: Math.max(fillOpacity, 0.001),
+                        weight: 0,
+                        opacity,
+                      }}
+                      eventHandlers={{ click: handlePolyClick }}
+                    />
+
+                    {/* Border edges: dashed for shared edges, solid for outer edges.
+                        interactive=false so clicks fall through to the fill Polygon. */}
+                    {segments.map((seg, si) => (
+                      <Polyline
+                        key={si}
+                        positions={seg.pts}
+                        pathOptions={{
+                          color: regionColor,
+                          weight,
+                          opacity,
+                          ...(seg.isShared ? { dashArray: '6 5' } : {}),
+                        }}
+                        interactive={false}
+                      />
+                    ))}
+                  </React.Fragment>
                 );
               })}
 
-              {/* Label marker — draggable to reposition, click to select/toggle */}
-              <Marker
-                position={labelPos}
-                icon={icon}
-                draggable={!regionMergeMode}
-                eventHandlers={{
-                  click: onRegionClick,
-                  dragend: (e) => {
-                    const ll = e.target.getLatLng();
-                    updateFeature(id, { labelLatLng: { lat: ll.lat, lng: ll.lng } });
-                  },
-                }}
-              />
+              {/* Label marker — hidden when zoom is too low, or a place name is linked.
+                  Uses RegionLabel with optimistic local position to prevent snap-back. */}
+              {showLabel && !hasLinkedPlaceName && (
+                <RegionLabel
+                  feature={feature}
+                  labelPos={labelPos}
+                  icon={icon}
+                  regionMergeMode={regionMergeMode}
+                  onRegionClick={onRegionClick}
+                />
+              )}
             </React.Fragment>
           );
         }
