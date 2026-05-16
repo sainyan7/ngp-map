@@ -18,8 +18,8 @@ const TOOLS = [
   { mode: 'select',       label: '選択',    title: 'クリックで都市・地名・施設を選択' },
   { mode: 'add_city',     label: '都市追加', title: 'クリックした位置に都市を追加' },
   { mode: 'add_label',    label: '地名追加', title: 'クリックした位置に地名ラベルを追加' },
-  { mode: 'add_facility', label: '施設追加', title: 'クリックした位置に重要施設を追加' },
   { mode: 'add_region',   label: '領域追加', title: 'クリックで頂点追加 → ダブルクリックで確定 | Backspace:直前の点を取り消し | Esc:キャンセル' },
+  { mode: 'add_facility', label: '施設追加', title: 'クリックした位置に重要施設を追加' },
   { mode: 'measure',      label: '計測',    title: '2点をクリックして距離を計測（3クリック目でリセット）' },
   { mode: 'whiteboard',   label: '描画',    title: 'マウス・ペンをドラッグして自由描画（ペン／消しゴム切替可）' },
 ];

@@ -24,8 +24,15 @@ const REGION_TYPES = [
 ];
 const REGION_TYPE_LABELS = { state: '州', region: '地方', county: '郡・市域', island: '島', archipelago: '諸島', other: 'その他' };
 
+// Merge: which type can be grouped into which parent type
+const MERGE_CONFIG = {
+  state:  { targetType: 'region',      label: '地方として結合' },
+  county: { targetType: 'state',       label: '州として結合' },
+  island: { targetType: 'archipelago', label: '諸島として結合' },
+};
+
 export default function FeaturePopup() {
-  const { selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion } = useMapStore();
+  const { selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion, startRegionMerge } = useMapStore();
   const { nickname } = useAuthStore();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({});
@@ -121,7 +128,15 @@ export default function FeaturePopup() {
                 onClick={() => { setAddingExclaveToRegion(selectedFeature); clearSelectedFeature(); }}
                 className="w-full bg-teal-700 hover:bg-teal-600 rounded-lg py-1.5 text-sm"
               >
-                ポリゴンを追加
+                領域を追加
+              </button>
+            )}
+            {isRegion && MERGE_CONFIG[properties?.regionType] && (
+              <button
+                onClick={() => startRegionMerge(MERGE_CONFIG[properties.regionType].targetType, selectedFeature)}
+                className="w-full bg-violet-700 hover:bg-violet-600 rounded-lg py-1.5 text-sm"
+              >
+                {MERGE_CONFIG[properties.regionType].label}
               </button>
             )}
             {isRegion && selectedFeature.labelLatLng && (

@@ -115,6 +115,28 @@ const useMapStore = create((set, get) => ({
       facilityTypeFilters: { ...state.facilityTypeFilters, [key]: !state.facilityTypeFilters[key] },
     })),
 
+  // ── Region merge mode ────────────────────────────────────────────────────
+  // targetType: 'region' | 'state' | 'archipelago'  (the type being CREATED)
+  // selection: array of feature objects whose polygons will be merged
+  regionMergeMode: false,
+  regionMergeTargetType: null,
+  regionMergeSelection: [],
+  startRegionMerge: (targetType, initialFeature) => set({
+    regionMergeMode: true,
+    regionMergeTargetType: targetType,
+    regionMergeSelection: initialFeature ? [initialFeature] : [],
+    selectedFeature: null,
+    selectedCity: null,
+    selectedPlaceName: null,
+  }),
+  toggleRegionMergeSelection: (feature) =>
+    set((s) => ({
+      regionMergeSelection: s.regionMergeSelection.some((f) => f.id === feature.id)
+        ? s.regionMergeSelection.filter((f) => f.id !== feature.id)
+        : [...s.regionMergeSelection, feature],
+    })),
+  clearRegionMerge: () => set({ regionMergeMode: false, regionMergeTargetType: null, regionMergeSelection: [] }),
+
   // ── Region type sub-filters ───────────────────────────────────────────────
   regionTypeFilters: { state: true, region: true, county: true, island: true, archipelago: true, other: true },
   toggleRegionTypeFilter: (key) =>
