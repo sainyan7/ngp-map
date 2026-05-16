@@ -240,15 +240,34 @@ export default function DrawingTools() {
     setDrawingMode('select');
   };
 
+  // Save multiple exclave polygons at once (multi-polygon exclave workflow)
+  const handleExclaveSaveMultiple = async (allLatlngs) => {
+    if (!addingExclaveToRegion) return;
+    const newPolys = allLatlngs.map((latlngs) => ({
+      latlngs: latlngs.map(([lat, lng]) => ({ lat, lng })),
+    }));
+    const updated = [...(addingExclaveToRegion.polygons ?? []), ...newPolys];
+    await updateFeature(addingExclaveToRegion.id, { polygons: updated, updatedBy: nickname });
+    clearAddingExclaveToRegion();
+    setPendingPolygons([]);
+    cancelPickingExistingRegion();
+    setDrawingMode('select');
+  };
+
   // Confirm the drawn shape → open property dialog (or save exclave directly)
   const handleConfirm = () => {
     if (!confirmState && pendingPolygons.length === 0) return;
-    // Multi-polygon: merge the current confirmed shape with the already-accumulated batch
+    // Multi-polygon batch: finalize all accumulated shapes at once
     if (pendingPolygons.length > 0) {
       const allPolys = [...pendingPolygons, ...(confirmState ? [confirmState.latlngs] : [])];
-      setDialogState({ type: 'region', latlngs: allPolys[0], polygons: allPolys });
-      setPendingPolygons([]);
-      cancelPickingExistingRegion();
+      if (addingExclaveToRegion) {
+        // All accumulated polygons are exclaves to add to the existing region
+        handleExclaveSaveMultiple(allPolys);
+      } else {
+        setDialogState({ type: 'region', latlngs: allPolys[0], polygons: allPolys });
+        setPendingPolygons([]);
+        cancelPickingExistingRegion();
+      }
       setConfirmState(null);
       return;
     }
@@ -274,9 +293,15 @@ export default function DrawingTools() {
   // "確定する" from the hint banner — finalize all accumulated polygons
   const handleFinalConfirm = () => {
     if (pendingPolygons.length === 0) return;
-    setDialogState({ type: 'region', latlngs: pendingPolygons[0], polygons: pendingPolygons });
-    setPendingPolygons([]);
-    cancelPickingExistingRegion();
+    if (addingExclaveToRegion) {
+      // Exclaves: save all accumulated polygons directly to the existing region
+      handleExclaveSaveMultiple(pendingPolygons);
+    } else {
+      // New region: open property dialog with all polygons
+      setDialogState({ type: 'region', latlngs: pendingPolygons[0], polygons: pendingPolygons });
+      setPendingPolygons([]);
+      cancelPickingExistingRegion();
+    }
   };
 
   // Cancel the entire multi-polygon session
@@ -539,7 +564,7 @@ export default function DrawingTools() {
           >
             編集を続ける
           </button>
-          {(drawingMode === 'add_region' || drawingMode === 'polygon') && (
+          {(drawingMode === 'add_region' || drawingMode === 'polygon' || drawingMode === 'add_exclave') && (
             <button
               onClick={handleAddAnotherPolygon}
               className="bg-teal-700 hover:bg-teal-600 text-white text-sm rounded-lg px-4 py-1.5 whitespace-nowrap"

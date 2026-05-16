@@ -111,15 +111,48 @@ function getEdgeSegments(positions, sharedEdgeSet) {
   return result;
 }
 
-// RegionLabel — extracted so it can hold optimistic drag position in local state.
-// Without this, React-Leaflet resets the Leaflet marker's position to the stale
-// prop value before Firestore confirms the update, causing visible snap-back.
-function RegionLabel({ feature, labelPos, icon, regionMergeMode, onRegionClick }) {
+// RegionLabel — extracted for two reasons:
+// 1. Holds optimistic drag position in local state to prevent snap-back when
+//    Firestore update races with React-Leaflet position prop reconciliation.
+// 2. Creates the icon via useMemo so L.divIcon is NOT recreated on every parent
+//    render. Without this, React-Leaflet calls setIcon on every render, which
+//    recreates the icon DOM element and detaches Leaflet's drag event listeners,
+//    making the label impossible to drag.
+function RegionLabel({
+  feature, labelPos, name, labelFontSize, labelOpacity, regionColor, regionMergeMode, onRegionClick,
+}) {
   const [optimisticPos, setOptimisticPos] = useState(null);
   const pos = optimisticPos ?? labelPos;
 
-  // Clear optimistic position once Firestore confirms (labelLatLng prop changes)
+  // Reset optimistic position once Firestore confirms the new labelLatLng
   useEffect(() => { setOptimisticPos(null); }, [feature.labelLatLng]);
+
+  // Stable icon — only recreated when visual properties change (zoom, name, etc.)
+  // This prevents setIcon→DOM recreation that would disconnect drag listeners.
+  const boxW = Math.max(80, Math.min(500, name.length * labelFontSize * 0.65 + 24));
+  const boxH = Math.ceil(labelFontSize * 2.2);
+  const icon = useMemo(() => L.divIcon({
+    className: 'region-label-icon',
+    html: `<div style="
+      width:${boxW}px;
+      height:${boxH}px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:${regionMergeMode ? 'default' : 'grab'};
+      user-select:none;
+      opacity:${labelOpacity.toFixed(2)};
+    "><span style="
+      font-size:${labelFontSize}px;
+      font-weight:bold;
+      color:${regionColor};
+      text-shadow:0 0 6px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95);
+      letter-spacing:0.08em;
+      white-space:nowrap;
+    ">${name}</span></div>`,
+    iconSize: [boxW, boxH],
+    iconAnchor: [boxW / 2, boxH / 2],
+  }), [name, labelFontSize, labelOpacity, regionColor, regionMergeMode, boxW, boxH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Marker
@@ -260,34 +293,7 @@ export default function FeatureLayer() {
           const showLabel          = zoom >= minZ + zoomOffset;
           const hasLinkedPlaceName = placeNames.some((pn) => pn.regionId === id);
 
-          // Estimate a hitbox wide enough for the text so Leaflet can handle drag events.
-          // iconSize must be non-zero; iconAnchor centers the box on the label position.
           const name = properties?.name || '';
-          const boxW = Math.max(80, Math.min(500, name.length * labelFontSize * 0.65 + 24));
-          const boxH = Math.ceil(labelFontSize * 2.2);
-
-          const icon = L.divIcon({
-            className: 'region-label-icon',
-            html: `<div style="
-              width:${boxW}px;
-              height:${boxH}px;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              cursor:${regionMergeMode ? 'default' : 'grab'};
-              user-select:none;
-              opacity:${labelOpacity.toFixed(2)};
-            "><span style="
-              font-size:${labelFontSize}px;
-              font-weight:bold;
-              color:${regionColor};
-              text-shadow:0 0 6px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95);
-              letter-spacing:0.08em;
-              white-space:nowrap;
-            ">${name}</span></div>`,
-            iconSize: [boxW, boxH],
-            iconAnchor: [boxW / 2, boxH / 2],
-          });
 
           // Click behaviour depends on mode
           const onRegionClick = (e) => {
@@ -369,12 +375,15 @@ export default function FeatureLayer() {
               })}
 
               {/* Label marker — hidden when zoom is too low, or a place name is linked.
-                  Uses RegionLabel with optimistic local position to prevent snap-back. */}
+                  Uses RegionLabel with memoized icon + optimistic position for drag fix. */}
               {showLabel && !hasLinkedPlaceName && (
                 <RegionLabel
                   feature={feature}
                   labelPos={labelPos}
-                  icon={icon}
+                  name={name}
+                  labelFontSize={labelFontSize}
+                  labelOpacity={labelOpacity}
+                  regionColor={regionColor}
                   regionMergeMode={regionMergeMode}
                   onRegionClick={onRegionClick}
                 />
