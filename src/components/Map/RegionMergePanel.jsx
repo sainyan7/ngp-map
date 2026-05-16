@@ -55,7 +55,7 @@ export default function RegionMergePanel() {
   const selectedNames = regionMergeSelection.map((f) => f.properties?.name || '名称未設定');
 
   return (
-    <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[500] flex flex-col items-center gap-2
+    <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[500] flex flex-col items-center gap-2
                     bg-gray-800 px-4 py-3 rounded-xl border border-violet-500 shadow-xl w-80 max-w-[92vw]">
       {/* Header */}
       <div className="w-full flex items-center justify-between">

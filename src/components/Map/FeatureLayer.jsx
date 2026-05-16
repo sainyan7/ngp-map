@@ -20,10 +20,18 @@ export const REGION_TYPE_COLORS = {
   other:       '#F59E0B',
 };
 
-function polygonCentroid(positions) {
-  const lat = positions.reduce((s, p) => s + p[0], 0) / positions.length;
-  const lng = positions.reduce((s, p) => s + p[1], 0) / positions.length;
-  return [lat, lng];
+// Bounding-box center is more visually centered than vertex average,
+// especially for non-convex or vertex-heavy polygons.
+function polygonBBoxCenter(positions) {
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+  for (const [lat, lng] of positions) {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  }
+  return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
 }
 
 export default function FeatureLayer() {
@@ -76,28 +84,41 @@ export default function FeatureLayer() {
 
           const mainPositions = polys[0].latlngs.map((p) => [p.lat, p.lng]);
           if (mainPositions.length < 3) return null;
-          const centroid = polygonCentroid(mainPositions);
 
-          // Use stored label position if manually moved, otherwise centroid
+          // Use bounding-box center for default label position
+          const bboxCenter = polygonBBoxCenter(mainPositions);
+
+          // Use stored label position if manually moved, otherwise bbox center
           const labelPos = feature.labelLatLng
             ? [feature.labelLatLng.lat, feature.labelLatLng.lng]
-            : centroid;
+            : bboxCenter;
+
+          // Estimate a hitbox wide enough for the text so Leaflet can handle drag events.
+          // iconSize must be non-zero; iconAnchor centers the box on the label position.
+          const name = properties?.name || '';
+          const boxW = Math.max(80, Math.min(500, name.length * fontSize * 0.65 + 24));
+          const boxH = Math.ceil(fontSize * 2.2);
 
           const icon = L.divIcon({
-            className: '',
+            className: 'region-label-icon',
             html: `<div style="
-              text-align:center;
-              pointer-events:none;
-              transform:translateX(-50%);
-              white-space:nowrap;
+              width:${boxW}px;
+              height:${boxH}px;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              cursor:${regionMergeMode ? 'default' : 'grab'};
+              user-select:none;
+            "><span style="
               font-size:${fontSize}px;
               font-weight:bold;
               color:${regionColor};
               text-shadow:0 0 6px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95);
               letter-spacing:0.08em;
-            ">${properties?.name || ''}</div>`,
-            iconSize: [0, 0],
-            iconAnchor: [0, 0],
+              white-space:nowrap;
+            ">${name}</span></div>`,
+            iconSize: [boxW, boxH],
+            iconAnchor: [boxW / 2, boxH / 2],
           });
 
           // Click behaviour depends on mode

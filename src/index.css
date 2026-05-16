@@ -68,6 +68,22 @@ rt {
 }
 .pn-arch-svg:hover text { opacity: 0.75; }
 
+/* Disable all interactive elements during measure mode */
+.leaflet-container.measure-mode .leaflet-interactive,
+.leaflet-container.measure-mode .leaflet-marker-icon,
+.leaflet-container.measure-mode .pn-label,
+.leaflet-container.measure-mode .pn-arch-svg {
+  pointer-events: none !important;
+  cursor: crosshair;
+}
+
+/* Region name labels — transparent background, no border */
+.region-label-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 /* Search result highlight — pulsing amber ring */
 .search-highlight-icon {
   background: transparent !important;

@@ -76,8 +76,8 @@ export default function LayerPanel({ open }) {
         <li><LayerRow layerKey="region" label="領域名" color="#A78BFA" layers={layers} toggleLayer={toggleLayer} /></li>
         {layers.region && (
           <>
-            <SubRow filterKey="state"       label="州"       color="#A78BFA" checked={regionTypeFilters.state}       onChange={() => toggleRegionTypeFilter('state')} />
             <SubRow filterKey="region"      label="地方"     color="#34D399" checked={regionTypeFilters.region}      onChange={() => toggleRegionTypeFilter('region')} />
+            <SubRow filterKey="state"       label="州"       color="#A78BFA" checked={regionTypeFilters.state}       onChange={() => toggleRegionTypeFilter('state')} />
             <SubRow filterKey="county"      label="郡・市域" color="#60A5FA" checked={regionTypeFilters.county}      onChange={() => toggleRegionTypeFilter('county')} />
             <SubRow filterKey="island"      label="島"       color="#F97316" checked={regionTypeFilters.island}      onChange={() => toggleRegionTypeFilter('island')} />
             <SubRow filterKey="archipelago" label="諸島"     color="#0EA5E9" checked={regionTypeFilters.archipelago} onChange={() => toggleRegionTypeFilter('archipelago')} />
