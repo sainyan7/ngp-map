@@ -280,14 +280,15 @@ export default function DrawingTools() {
     setConfirmState(null);
   };
 
-  // "確定して次のポリゴンを追加" — save current shape to batch, enter pick/draw mode
+  // "確定して次のポリゴンを追加" — save current shape to batch, then allow user
+  // to immediately start drawing the next polygon (or pick an existing one).
   const handleAddAnotherPolygon = () => {
     if (!confirmState) return;
     setPendingPolygons((prev) => [...prev, confirmState.latlngs]);
     setConfirmState(null);
     clearPendingPoints();
-    // Enter pick mode so the user can also click an existing region polygon
-    startPickingExistingRegion();
+    // Do NOT enter pick mode here — user can draw immediately by clicking the map.
+    // Pick mode is available via the "既存の領域を選択" button in the hint banner.
   };
 
   // "確定する" from the hint banner — finalize all accumulated polygons
@@ -583,29 +584,46 @@ export default function DrawingTools() {
         </div>
       )}
 
-      {/* Hint banner — shown when polygons are accumulated but no confirm panel is visible */}
-      {pendingPolygons.length > 0 && !confirmState && !dialogState && (
+      {/* Hint banner — shown between polygons (not while actively drawing points) */}
+      {pendingPolygons.length > 0 && !confirmState && !dialogState && pendingPoints.length === 0 && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[1000]
                         bg-gray-800 border border-teal-600 rounded-xl shadow-2xl
-                        px-5 py-3 flex flex-col gap-2 min-w-[280px]">
+                        px-5 py-3 flex flex-col gap-2 min-w-[300px]">
           <span className="text-teal-300 text-sm font-medium">
-            {pendingPolygons.length}個のポリゴン追加済み
+            {pendingPolygons.length}個のポリゴンを追加しました
           </span>
           <span className="text-xs text-gray-400">
-            既存の領域を1ポリゴンずつクリック、または点を打って新規追加できます
+            {pickingExistingRegion
+              ? '地図上の既存の領域をクリックして追加してください'
+              : '引き続き地図をクリックして次の範囲を描いてください（ダブルクリックで確定）'}
           </span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleFinalConfirm}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg px-4 py-1.5"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg px-3 py-1.5 whitespace-nowrap"
             >
-              確定する
+              すべて確定する
             </button>
+            {!pickingExistingRegion ? (
+              <button
+                onClick={startPickingExistingRegion}
+                className="flex-1 bg-indigo-700 hover:bg-indigo-600 text-white text-sm rounded-lg px-3 py-1.5 whitespace-nowrap"
+              >
+                既存の領域を選択
+              </button>
+            ) : (
+              <button
+                onClick={cancelPickingExistingRegion}
+                className="flex-1 bg-indigo-700 hover:bg-indigo-600 text-white text-sm rounded-lg px-3 py-1.5 whitespace-nowrap"
+              >
+                描画モードに戻る
+              </button>
+            )}
             <button
               onClick={handleCancelMulti}
-              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg px-4 py-1.5"
+              className="w-full bg-gray-600 hover:bg-gray-500 text-white text-sm rounded-lg px-3 py-1.5"
             >
-              キャンセル
+              キャンセル（最初からやり直す）
             </button>
           </div>
         </div>

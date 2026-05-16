@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import L from 'leaflet';
 import { useMap, useMapEvents, CircleMarker, Marker, Polyline, Polygon, Tooltip } from 'react-leaflet';
 import useMapStore from '../../store/useMapStore';
@@ -111,59 +111,81 @@ function getEdgeSegments(positions, sharedEdgeSet) {
   return result;
 }
 
-// RegionLabel — extracted for two reasons:
-// 1. Holds optimistic drag position in local state to prevent snap-back when
-//    Firestore update races with React-Leaflet position prop reconciliation.
-// 2. Creates the icon via useMemo so L.divIcon is NOT recreated on every parent
-//    render. Without this, React-Leaflet calls setIcon on every render, which
-//    recreates the icon DOM element and detaches Leaflet's drag event listeners,
-//    making the label impossible to drag.
+// RegionLabel — extracted component for reliable draggable labels.
+//
+// Problem 1 (snap-back): dragend calls updateFeature (async). Before Firestore
+//   confirms, React-Leaflet overwrites the marker position with the old labelPos.
+//   Fix: keep savedPos in state, cleared only when Firestore confirms.
+//
+// Problem 2 (drag jitter): on any parent re-render during drag (e.g. Firestore
+//   subscription fires), React-Leaflet calls marker.setLatLng(old_pos) which
+//   fights Leaflet's drag handler and causes visible jitter.
+//   Fix: patch the Leaflet marker instance's setLatLng to no-op while isDragging.
+//
+// Problem 3 (icon thrashing): L.divIcon created fresh every parent render →
+//   React-Leaflet calls setIcon → icon DOM recreated → drag listeners detached.
+//   Fix: useMemo inside this component with stable deps.
 function RegionLabel({
   feature, labelPos, name, labelFontSize, labelOpacity, regionColor, regionMergeMode, onRegionClick,
 }) {
-  const [optimisticPos, setOptimisticPos] = useState(null);
-  const pos = optimisticPos ?? labelPos;
+  const [savedPos, setSavedPos] = useState(null);
+  const isDraggingRef = useRef(false);
 
-  // Reset optimistic position once Firestore confirms the new labelLatLng
-  useEffect(() => { setOptimisticPos(null); }, [feature.labelLatLng]);
+  // When Firestore confirms the new position, clear the local override
+  useEffect(() => { setSavedPos(null); }, [feature.labelLatLng]);
 
-  // Stable icon — only recreated when visual properties change (zoom, name, etc.)
-  // This prevents setIcon→DOM recreation that would disconnect drag listeners.
+  // Position: use local savedPos (set on dragend) until Firestore confirms,
+  // to prevent snap-back to old labelPos during the async window.
+  const pos = savedPos ?? labelPos;
+
+  // Stable icon — only recreated when visual properties actually change.
   const boxW = Math.max(80, Math.min(500, name.length * labelFontSize * 0.65 + 24));
   const boxH = Math.ceil(labelFontSize * 2.2);
   const icon = useMemo(() => L.divIcon({
     className: 'region-label-icon',
     html: `<div style="
-      width:${boxW}px;
-      height:${boxH}px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
+      width:${boxW}px;height:${boxH}px;
+      display:flex;align-items:center;justify-content:center;
       cursor:${regionMergeMode ? 'default' : 'grab'};
       user-select:none;
       opacity:${labelOpacity.toFixed(2)};
     "><span style="
-      font-size:${labelFontSize}px;
-      font-weight:bold;
+      font-size:${labelFontSize}px;font-weight:bold;
       color:${regionColor};
       text-shadow:0 0 6px rgba(0,0,0,0.95),0 0 3px rgba(0,0,0,0.95);
-      letter-spacing:0.08em;
-      white-space:nowrap;
+      letter-spacing:0.08em;white-space:nowrap;
     ">${name}</span></div>`,
     iconSize: [boxW, boxH],
     iconAnchor: [boxW / 2, boxH / 2],
   }), [name, labelFontSize, labelOpacity, regionColor, regionMergeMode, boxW, boxH]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Callback ref: patch the Leaflet marker instance once on mount.
+  // During drag, block setLatLng calls that come from React-Leaflet's prop
+  // reconciliation — they fight the drag handler and cause jitter.
+  // Leaflet's own drag handler bypasses setLatLng (uses DomUtil.setPosition
+  // directly), so the patch doesn't affect native drag movement.
+  const markerRef = useCallback((marker) => {
+    if (!marker) return;
+    const orig = marker.setLatLng.bind(marker);
+    marker.setLatLng = function (latlng) {
+      if (isDraggingRef.current) return this; // suppress during drag
+      return orig(latlng);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <Marker
+      ref={markerRef}
       position={pos}
       icon={icon}
       draggable={!regionMergeMode}
       eventHandlers={{
         click: onRegionClick,
+        dragstart: () => { isDraggingRef.current = true; },
         dragend: (e) => {
+          isDraggingRef.current = false;
           const ll = e.target.getLatLng();
-          setOptimisticPos([ll.lat, ll.lng]); // Immediate optimistic update
+          setSavedPos([ll.lat, ll.lng]); // Prevent snap-back while Firestore confirms
           updateFeature(feature.id, { labelLatLng: { lat: ll.lat, lng: ll.lng } });
         },
       }}
