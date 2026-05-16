@@ -31,6 +31,8 @@ const useMapStore = create((set, get) => ({
   pendingPoints: [],
   addPendingPoint: (latlng) =>
     set((state) => ({ pendingPoints: [...state.pendingPoints, latlng] })),
+  removeLastPendingPoint: () =>
+    set((state) => ({ pendingPoints: state.pendingPoints.slice(0, -1) })),
   clearPendingPoints: () => set({ pendingPoints: [] }),
 
   // ── Data from Firestore (real-time) ─────────────────────────────────────────

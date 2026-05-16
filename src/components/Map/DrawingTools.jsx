@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMap, useMapEvents, Polyline, Polygon, CircleMarker } from 'react-leaflet';
 import useMapStore from '../../store/useMapStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -180,6 +180,7 @@ export default function DrawingTools() {
     drawingMode,
     pendingPoints,
     addPendingPoint,
+    removeLastPendingPoint,
     clearPendingPoints,
     setDrawingMode,
     features,
@@ -222,6 +223,37 @@ export default function DrawingTools() {
     setDrawingMode('select');
   };
 
+  const DRAWING_MODES = ['line', 'polygon', 'add_region', 'add_exclave'];
+
+  // Disable map's built-in doubleClickZoom while in drawing modes
+  // (dblclick is used to confirm the shape instead)
+  useEffect(() => {
+    if (DRAWING_MODES.includes(drawingMode)) {
+      map.doubleClickZoom.disable();
+    } else {
+      map.doubleClickZoom.enable();
+    }
+  }, [drawingMode, map]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keyboard shortcuts during drawing:
+  //   Backspace / Delete → undo last point
+  //   Escape → cancel drawing
+  useEffect(() => {
+    if (!DRAWING_MODES.includes(drawingMode)) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        removeLastPendingPoint();
+      } else if (e.key === 'Escape') {
+        clearPendingPoints();
+        setSnapPoint(null);
+        setDrawingMode('select');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [drawingMode, removeLastPendingPoint, clearPendingPoints, setDrawingMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useMapEvents({
     click(e) {
       if (['select','delete','add_city','add_label','add_facility'].includes(drawingMode)) return;
@@ -238,13 +270,17 @@ export default function DrawingTools() {
     },
 
     dblclick(e) {
-      if (!['line', 'polygon', 'add_region', 'add_exclave'].includes(drawingMode)) return;
-      if (pendingPoints.length < 2) return;
+      if (!DRAWING_MODES.includes(drawingMode)) return;
 
-      // Prevent the map zoom that normally fires on dblclick
+      // Prevent map zoom that fires on dblclick
       e.originalEvent?.preventDefault?.();
 
-      const latlngs = [...pendingPoints];
+      // A double-click fires two prior click events, adding 2 extra points.
+      // Slice them off to get the user's intended points.
+      const latlngs = pendingPoints.slice(0, -2);
+      const minPoints = drawingMode === 'line' ? 2 : 3;
+      if (latlngs.length < minPoints) return;
+
       clearPendingPoints();
       setSnapPoint(null);
 

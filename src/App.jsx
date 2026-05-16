@@ -21,7 +21,7 @@ const TOOLS = [
   { mode: 'add_facility', label: '施設追加', title: 'クリックした位置に重要施設を追加' },
   { mode: 'measure',      label: '計測',    title: '2点をクリックして距離を計測（3クリック目でリセット）' },
   { mode: 'whiteboard',   label: '描画',    title: 'マウス・ペンをドラッグして自由描画（ペン／消しゴム切替可）' },
-  { mode: 'add_region',   label: '領域追加', title: 'クリックで頂点追加、ダブルクリックで確定して領域を作成' },
+  { mode: 'add_region',   label: '領域追加', title: 'クリックで頂点追加 → ダブルクリックで確定 | Backspace:直前の点を取り消し | Esc:キャンセル' },
 ];
 
 function Header({ onToggleLayer }) {
