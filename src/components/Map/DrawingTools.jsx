@@ -297,6 +297,13 @@ export default function DrawingTools() {
       setDialogState({ type, latlngs });
     },
 
+    contextmenu(e) {
+      // Right-click during drawing: remove the last placed point
+      if (!DRAWING_MODES.includes(drawingMode)) return;
+      e.originalEvent?.preventDefault?.();
+      removeLastPendingPoint();
+    },
+
     mousemove(e) {
       if (['line', 'polygon', 'add_region', 'add_exclave'].includes(drawingMode)) {
         if (REGION_MODES.includes(drawingMode)) {
