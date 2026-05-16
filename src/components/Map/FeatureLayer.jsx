@@ -85,8 +85,11 @@ export default function FeatureLayer() {
           const mainPositions = polys[0].latlngs.map((p) => [p.lat, p.lng]);
           if (mainPositions.length < 3) return null;
 
-          // Use bounding-box center for default label position
-          const bboxCenter = polygonBBoxCenter(mainPositions);
+          // Compute bbox center from ALL polygons so labels on merged regions
+          // (e.g. 地方 composed of multiple 州) appear at the combined center,
+          // not at the center of whichever polygon was added first.
+          const allPositions = polys.flatMap((poly) => poly.latlngs.map((p) => [p.lat, p.lng]));
+          const bboxCenter = polygonBBoxCenter(allPositions);
 
           // Use stored label position if manually moved, otherwise bbox center
           const labelPos = feature.labelLatLng
