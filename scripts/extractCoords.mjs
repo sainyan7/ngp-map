@@ -26,8 +26,8 @@ const IS_DRY  = process.argv.includes('--dry-run');
 const ANALYZE = process.argv.includes('--analyze');
 
 // ── ベース画像サイズ ─────────────────────────────────────────────────────────
-const BASE_W = 2500;
-const BASE_H = 3755;
+const BASE_W = 4000;
+const BASE_H = 6008;
 
 // ── グリッドサイズ（厚いラインを1点に集約するセルサイズ） ───────────────────
 const ROAD_GRID = 20;   // 道路・鉄道・州境：20px セル

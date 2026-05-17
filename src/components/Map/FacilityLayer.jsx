@@ -93,7 +93,7 @@ function makeFacilityDragIcon(facility) {
 
 // ── Draggable marker ──────────────────────────────────────────────────────────
 const DragFacilityMarker = memo(function DragFacilityMarker({ facility, showRuby, showFacilityLabel }) {
-  const { setSelectedFacility } = useMapStore();
+  const { setSelectedFacility, drawingMode } = useMapStore();
   const ref = useRef(facility);
   useEffect(() => { ref.current = facility; });
 
@@ -125,7 +125,7 @@ const DragFacilityMarker = memo(function DragFacilityMarker({ facility, showRuby
     : displayLabel;
 
   return (
-    <Marker position={pos} icon={icon} draggable eventHandlers={handlers}>
+    <Marker position={pos} icon={icon} draggable interactive={drawingMode !== 'measure'} eventHandlers={handlers}>
       {showFacilityLabel && (
         <Tooltip permanent direction="right" offset={[6, 0]} className="city-label">
           <span style={{ fontSize: '10px', color: FACILITY_TEXT_COLOR[facility.type] ?? '#1F2937' }}>{label}</span>

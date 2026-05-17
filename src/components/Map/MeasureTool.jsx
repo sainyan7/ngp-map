@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import useMapStore from '../../store/useMapStore';
+
 
 // Small pin icon for measurement points
 function makePinIcon(label, color) {
@@ -30,31 +31,77 @@ function MeasureEvents() {
     measureStart, setMeasureStart,
     measureEnd, setMeasureEnd,
     clearMeasure,
+    cities, facilities, layers,
   } = useMapStore();
 
-  // Manage cursor style
+  // Ref so click handler always reads current snap without being recreated
+  const snapRef = useRef(null);
+
+  // Precompute snap candidates with per-marker pixel radius matching icon size
+  const snapCandidates = useMemo(() => {
+    const list = [];
+    if (layers.city) {
+      cities.forEach(c => {
+        const px = (c.type === 'capital' || c.type === 'major_city') ? 7
+                 : c.type === 'state_capital' ? 5 : 4;
+        list.push({ latlng: L.latLng(c.lat, c.lng), px });
+      });
+    }
+    if (layers.facilities) {
+      facilities.forEach(f => list.push({ latlng: L.latLng(f.lat, f.lng), px: 8 }));
+    }
+    return list;
+  }, [cities, facilities, layers.city, layers.facilities]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Manage cursor style and measure-mode class (disables label pointer-events)
   useEffect(() => {
     const el = map.getContainer();
     if (drawingMode === 'measure') {
       el.style.cursor = 'crosshair';
+      el.classList.add('measure-mode');
     } else {
       el.style.cursor = '';
+      el.classList.remove('measure-mode');
       clearMeasure();
+      snapRef.current = null;
     }
-    return () => { el.style.cursor = ''; };
+    return () => {
+      el.style.cursor = '';
+      el.classList.remove('measure-mode');
+    };
   }, [drawingMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useMapEvents({
+    mousemove(e) {
+      if (drawingMode !== 'measure') return;
+      let nearest = null;
+      let nearestDist = Infinity;
+      for (const { latlng, px } of snapCandidates) {
+        const pt = map.latLngToContainerPoint(latlng);
+        const d = e.containerPoint.distanceTo(pt);
+        if (d <= px && d < nearestDist) {
+          nearest = latlng;
+          nearestDist = d;
+        }
+      }
+      snapRef.current = nearest;
+      map.getContainer().style.cursor = nearest ? 'pointer' : 'crosshair';
+    },
+    mouseout() {
+      snapRef.current = null;
+      map.getContainer().style.cursor = 'crosshair';
+    },
     click(e) {
       if (drawingMode !== 'measure') return;
+      const latlng = snapRef.current ?? e.latlng;
       if (!measureStart) {
-        setMeasureStart(e.latlng);
+        setMeasureStart(latlng);
       } else if (!measureEnd) {
-        setMeasureEnd(e.latlng);
+        setMeasureEnd(latlng);
       } else {
         // Third click — reset
         clearMeasure();
-        setMeasureStart(e.latlng);
+        setMeasureStart(latlng);
       }
     },
   });
@@ -95,7 +142,6 @@ export default function MeasureTool() {
           interactive={false}
         />
       )}
-      {/* Distance result overlay — rendered outside MapContainer via portal-like absolute positioning */}
       {distKm && (
         <MeasureResultOverlay distKm={distKm} />
       )}

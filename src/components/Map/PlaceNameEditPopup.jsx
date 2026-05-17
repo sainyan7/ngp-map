@@ -130,13 +130,14 @@ export default function PlaceNameEditPopup() {
     pushHistory,
     features,
     assigningRegionToPlaceName, startAssigningRegionToPlaceName, cancelAssigningRegionToPlaceName,
-    pendingRegionIdForPlaceName, clearPendingRegionIdForPlaceName,
+    pendingRegionIdForPlaceName, pendingPolygonIdxForPlaceName, clearPendingRegionIdForPlaceName,
   } = useMapStore();
   const [form, setForm]     = useState({
     name: '', category: 'other',
     layout: 'horizontal', archHeight: 15, archUp: true,
     tilt: 0, ruby: '', letterSpacing: '',
     regionId: '',
+    polygonIdx: null,  // null = whole region; 0,1,2... = specific polygon (exclave)
   });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
@@ -153,16 +154,22 @@ export default function PlaceNameEditPopup() {
         ruby:          selectedPlaceName.ruby          ?? '',
         letterSpacing: selectedPlaceName.letterSpacing ?? '',
         regionId:      selectedPlaceName.regionId      ?? '',
+        polygonIdx:    selectedPlaceName.polygonIdx    ?? null,
       });
       setError('');
       setPlaceNameDragEnabled(false);
     }
   }, [selectedPlaceName?.id]);
 
-  // When FeatureLayer commits a region pick, update the form
+  // When FeatureLayer commits a region pick (with optional polygon index), update the form.
+  // pendingPolygonIdxForPlaceName: null = whole region, 0,1,2... = specific polygon (exclave).
   useEffect(() => {
     if (pendingRegionIdForPlaceName) {
-      setForm((f) => ({ ...f, regionId: pendingRegionIdForPlaceName }));
+      setForm((f) => ({
+        ...f,
+        regionId:   pendingRegionIdForPlaceName,
+        polygonIdx: pendingPolygonIdxForPlaceName,
+      }));
       clearPendingRegionIdForPlaceName();
     }
   }, [pendingRegionIdForPlaceName]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -180,7 +187,8 @@ export default function PlaceNameEditPopup() {
         layout: form.layout, archHeight: form.archHeight, archUp: form.archUp,
         tilt: form.tilt, ruby: form.ruby,
         letterSpacing: form.letterSpacing,
-        regionId: form.regionId || null,
+        regionId:   form.regionId || null,
+        polygonIdx: form.regionId ? (form.polygonIdx ?? null) : null,
       };
       if (selectedPlaceName.id) {
         const id = selectedPlaceName.id;
@@ -453,7 +461,14 @@ export default function PlaceNameEditPopup() {
             return (
               <div className="mt-0.5 flex items-center gap-1">
                 <span className="flex-1 text-xs text-gray-300 truncate">
-                  {linked ? linked.properties?.name || '名称未設定' : '未設定'}
+                  {linked
+                    ? <>
+                        {linked.properties?.name || '名称未設定'}
+                        {form.polygonIdx != null && (
+                          <span className="ml-1 text-teal-400">(飛び地 #{form.polygonIdx + 1})</span>
+                        )}
+                      </>
+                    : '未設定'}
                 </span>
                 <button
                   onClick={startAssigningRegionToPlaceName}
@@ -461,7 +476,7 @@ export default function PlaceNameEditPopup() {
                 >地図から選択</button>
                 {linked && (
                   <button
-                    onClick={() => setForm((f) => ({ ...f, regionId: '' }))}
+                    onClick={() => setForm((f) => ({ ...f, regionId: '', polygonIdx: null }))}
                     className="text-xs text-gray-500 hover:text-red-400 px-1"
                   >解除</button>
                 )}

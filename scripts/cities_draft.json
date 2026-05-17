@@ -1,338 +1,908 @@
 [
   {
     "type": "major_city",
-    "lat": 1942,
-    "lng": 638,
+    "lat": 5028,
+    "lng": 1631,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 1519,
-    "lng": 597,
+    "lat": 4388,
+    "lng": 1551,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 1339,
-    "lng": 408,
+    "lat": 4213,
+    "lng": 1796,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 1327,
-    "lng": 587,
+    "lat": 3107,
+    "lng": 1022,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 1278,
-    "lng": 591,
+    "lat": 2792,
+    "lng": 2205,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 1176,
-    "lng": 555,
+    "lat": 2480,
+    "lng": 2259,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 1000,
-    "lng": 434,
+    "lat": 2431,
+    "lng": 956,
     "name": ""
   },
   {
     "type": "major_city",
-    "lat": 117,
-    "lng": 710,
+    "lat": 2377,
+    "lng": 1947,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 2302,
+    "lng": 1878,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 2149,
+    "lng": 2460,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 2143,
+    "lng": 653,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 2123,
+    "lng": 939,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 2045,
+    "lng": 945,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1884,
+    "lng": 2787,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1881,
+    "lng": 888,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1858,
+    "lng": 2133,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1856,
+    "lng": 3180,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1784,
+    "lng": 2829,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1768,
+    "lng": 1988,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1748,
+    "lng": 3256,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1726,
+    "lng": 3128,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1678,
+    "lng": 3294,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1620,
+    "lng": 3137,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1599,
+    "lng": 694,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1562,
+    "lng": 3330,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1520,
+    "lng": 3084,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1202,
+    "lng": 1670,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 1021,
+    "lng": 1653,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 946,
+    "lng": 1901,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 646,
+    "lng": 1977,
+    "name": ""
+  },
+  {
+    "type": "major_city",
+    "lat": 188,
+    "lng": 1136,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 2484,
-    "lng": 760,
+    "lat": 3974,
+    "lng": 1217,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 2074,
-    "lng": 671,
+    "lat": 3319,
+    "lng": 1073,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 2009,
-    "lng": 557,
+    "lat": 3215,
+    "lng": 891,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1663,
-    "lng": 577,
+    "lat": 2762,
+    "lng": 2617,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1575,
-    "lng": 487,
+    "lat": 2660,
+    "lng": 923,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1446,
-    "lng": 482,
+    "lat": 2520,
+    "lng": 779,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1365,
-    "lng": 524,
+    "lat": 2495,
+    "lng": 1725,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1358,
-    "lng": 769,
+    "lat": 2432,
+    "lng": 2590,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2314,
+    "lng": 771,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2254,
+    "lng": 2993,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2185,
+    "lng": 839,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2181,
+    "lng": 2911,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2175,
+    "lng": 2152,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2173,
+    "lng": 1230,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2132,
+    "lng": 3181,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2084,
+    "lng": 2398,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2040,
+    "lng": 2000,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 2018,
+    "lng": 3525,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1940,
+    "lng": 686,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1910,
+    "lng": 2612,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1841,
+    "lng": 2382,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1835,
+    "lng": 1102,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1801,
+    "lng": 1793,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1785,
+    "lng": 3438,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1736,
+    "lng": 2927,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1723,
+    "lng": 572,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1666,
+    "lng": 3406,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1520,
+    "lng": 1846,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1440,
+    "lng": 2882,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1439,
+    "lng": 2532,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1371,
+    "lng": 522,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1316,
+    "lng": 3085,
+    "name": ""
+  },
+  {
+    "type": "state_capital",
+    "lat": 1264,
+    "lng": 789,
     "name": ""
   },
   {
     "type": "state_capital",
     "lat": 1213,
-    "lng": 429,
+    "lng": 1319,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1147,
-    "lng": 688,
+    "lat": 1103,
+    "lng": 1794,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 1077,
-    "lng": 358,
+    "lat": 1048,
+    "lng": 988,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 857,
-    "lng": 326,
+    "lat": 1045,
+    "lng": 1303,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 790,
-    "lng": 493,
+    "lat": 810,
+    "lng": 282,
     "name": ""
   },
   {
     "type": "state_capital",
-    "lat": 655,
-    "lng": 618,
-    "name": ""
-  },
-  {
-    "type": "state_capital",
-    "lat": 506,
-    "lng": 176,
+    "lat": 591,
+    "lng": 1803,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 2316,
-    "lng": 761,
+    "lat": 5644,
+    "lng": 1841,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 2021,
-    "lng": 637,
+    "lat": 5587,
+    "lng": 2122,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1992,
+    "lat": 5456,
+    "lng": 2949,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5409,
+    "lng": 1436,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5401,
+    "lng": 1254,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5384,
+    "lng": 2397,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5295,
+    "lng": 2056,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5272,
+    "lng": 2959,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5188,
+    "lng": 2330,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5121,
+    "lng": 1861,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5053,
+    "lng": 1139,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 5022,
+    "lng": 1467,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4987,
+    "lng": 2192,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4934,
+    "lng": 2667,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4897,
+    "lng": 1335,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4854,
+    "lng": 1580,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4854,
+    "lng": 2068,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4833,
+    "lng": 2398,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4801,
+    "lng": 2607,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4740,
+    "lng": 1537,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4669,
+    "lng": 1786,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4651,
+    "lng": 2492,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4582,
+    "lng": 2041,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4550,
+    "lng": 2278,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4353,
+    "lng": 2416,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4345,
+    "lng": 2985,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4339,
+    "lng": 2837,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4320,
+    "lng": 2636,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4285,
+    "lng": 1640,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4282,
+    "lng": 1930,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4248,
+    "lng": 1319,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4112,
+    "lng": 1821,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4041,
+    "lng": 2428,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4031,
+    "lng": 1897,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 4017,
+    "lng": 3197,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3905,
+    "lng": 2775,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3893,
+    "lng": 1941,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3721,
+    "lng": 1923,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3706,
+    "lng": 1217,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3680,
+    "lng": 2657,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3646,
+    "lng": 2833,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3635,
+    "lng": 1719,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3524,
+    "lng": 1687,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3481,
+    "lng": 2332,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3477,
+    "lng": 2183,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3473,
+    "lng": 1977,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3397,
+    "lng": 1745,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3233,
+    "lng": 1019,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3188,
+    "lng": 1172,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3155,
+    "lng": 1751,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 3049,
+    "lng": 955,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 2979,
+    "lng": 1913,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 2850,
+    "lng": 911,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 2691,
+    "lng": 337,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 2642,
+    "lng": 855,
+    "name": ""
+  },
+  {
+    "type": "city",
+    "lat": 2381,
     "lng": 732,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1906,
-    "lng": 597,
+    "lat": 2292,
+    "lng": 932,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1781,
-    "lng": 570,
+    "lat": 2264,
+    "lng": 1404,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1682,
-    "lng": 211,
+    "lat": 2263,
+    "lng": 700,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1651,
-    "lng": 534,
+    "lat": 2254,
+    "lng": 1106,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1488,
-    "lng": 458,
+    "lat": 2226,
+    "lng": 466,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1432,
-    "lng": 582,
+    "lat": 2195,
+    "lng": 1281,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1415,
-    "lng": 878,
+    "lat": 2185,
+    "lng": 1004,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1414,
-    "lng": 437,
+    "lat": 2173,
+    "lng": 932,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1409,
-    "lng": 691,
+    "lat": 2163,
+    "lng": 1145,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1391,
-    "lng": 291,
+    "lat": 2072,
+    "lng": 621,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1372,
-    "lng": 801,
+    "lat": 2060,
+    "lng": 885,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1366,
-    "lng": 627,
+    "lat": 1965,
+    "lng": 450,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1358,
-    "lng": 583,
+    "lat": 1922,
+    "lng": 936,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1352,
-    "lng": 715,
+    "lat": 1834,
+    "lng": 906,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1295,
-    "lng": 388,
+    "lat": 1791,
+    "lng": 617,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1287,
-    "lng": 553,
+    "lat": 1744,
+    "lng": 797,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1228,
-    "lng": 281,
+    "lat": 1628,
+    "lng": 756,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1201,
-    "lng": 585,
+    "lat": 1560,
+    "lng": 608,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1146,
-    "lng": 566,
+    "lat": 1539,
+    "lng": 682,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1119,
-    "lng": 386,
+    "lat": 1482,
+    "lng": 513,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1090,
-    "lng": 498,
+    "lat": 1465,
+    "lng": 697,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 1018,
-    "lng": 473,
+    "lat": 1383,
+    "lng": 643,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 975,
-    "lng": 380,
+    "lat": 1178,
+    "lng": 921,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 962,
-    "lng": 426,
+    "lat": 1060,
+    "lng": 431,
     "name": ""
   },
   {
     "type": "city",
-    "lat": 926,
-    "lng": 321,
-    "name": ""
-  },
-  {
-    "type": "city",
-    "lat": 916,
-    "lng": 436,
-    "name": ""
-  },
-  {
-    "type": "city",
-    "lat": 864,
-    "lng": 402,
-    "name": ""
-  },
-  {
-    "type": "city",
-    "lat": 736,
-    "lng": 576,
-    "name": ""
-  },
-  {
-    "type": "city",
-    "lat": 663,
-    "lng": 270,
-    "name": ""
-  },
-  {
-    "type": "city",
-    "lat": 602,
-    "lng": 586,
+    "lat": 963,
+    "lng": 938,
     "name": ""
   }
 ]

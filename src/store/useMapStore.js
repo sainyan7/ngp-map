@@ -140,15 +140,22 @@ const useMapStore = create((set, get) => ({
 
   // ── Place name → region assignment mode ──────────────────────────────────
   // Used when the user clicks "地図から選択" in PlaceNameEditPopup.
-  // FeatureLayer watches this flag: clicking a region calls commitRegionIdForPlaceName.
+  // FeatureLayer watches this flag: clicking a region polygon calls
+  // commitRegionIdForPlaceName with the region id AND the polygon index,
+  // enabling per-exclave (飛び地) linking instead of whole-region linking.
   assigningRegionToPlaceName: false,
   startAssigningRegionToPlaceName: () => set({ assigningRegionToPlaceName: true }),
   pendingRegionIdForPlaceName: null,
-  commitRegionIdForPlaceName: (regionId) => set({
+  pendingPolygonIdxForPlaceName: null,   // null = whole region; 0,1,2... = specific polygon
+  commitRegionIdForPlaceName: (regionId, polygonIdx = null) => set({
     pendingRegionIdForPlaceName: regionId,
+    pendingPolygonIdxForPlaceName: polygonIdx,
     assigningRegionToPlaceName: false,
   }),
-  clearPendingRegionIdForPlaceName: () => set({ pendingRegionIdForPlaceName: null }),
+  clearPendingRegionIdForPlaceName: () => set({
+    pendingRegionIdForPlaceName: null,
+    pendingPolygonIdxForPlaceName: null,
+  }),
   cancelAssigningRegionToPlaceName: () => set({ assigningRegionToPlaceName: false }),
 
   // ── Region type sub-filters ───────────────────────────────────────────────

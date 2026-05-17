@@ -30,8 +30,8 @@ const EXTRACT = process.argv.includes('--extract');
 const UPLOAD  = process.argv.includes('--upload');
 
 // ── ベース画像サイズ（CRS.Simple 座標系の基準） ───────────────────────────
-const BASE_W = 2500;
-const BASE_H = 3755;
+const BASE_W = 4000;
+const BASE_H = 6008;
 
 // グリッドサイズ（px）— 小さいほど細かく検出
 const GRID = 3;

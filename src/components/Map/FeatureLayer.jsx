@@ -320,11 +320,8 @@ export default function FeatureLayer() {
           // Click behaviour depends on mode
           const onRegionClick = (e) => {
             e.originalEvent?.stopPropagation?.();
-            // Place-name region assignment mode: capture this region's ID
-            if (assigningRegionToPlaceName) {
-              commitRegionIdForPlaceName(id);
-              return;
-            }
+            // Note: assigningRegionToPlaceName is now handled per-polygon in handlePolyClick
+            // so that we can pass the specific polygon index (exclave-level linking).
             if (regionMergeMode) {
               if (isMergeCompatible) toggleRegionMergeSelection(feature);
               return; // Never open popup while in merge mode
@@ -351,11 +348,16 @@ export default function FeatureLayer() {
                 // Split perimeter into shared (dashed) and non-shared (solid) runs.
                 const segments = getEdgeSegments(positions, sharedEdgeSet);
 
-                // Per-polygon click: in pick mode, commit exactly this polygon's positions
+                // Per-polygon click: in pick mode commit this polygon's positions;
+                // in place-name assignment mode commit region ID + polygon index.
               const handlePolyClick = (e) => {
                 e.originalEvent?.stopPropagation?.();
                 if (pickingExistingRegion) {
                   commitPickedPolygon(positions);
+                  return;
+                }
+                if (assigningRegionToPlaceName) {
+                  commitRegionIdForPlaceName(id, idx); // pass polygon index for exclave-level linking
                   return;
                 }
                 onRegionClick(e);

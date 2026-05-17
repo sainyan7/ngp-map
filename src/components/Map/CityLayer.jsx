@@ -120,7 +120,7 @@ function CityTooltip({ children }) {
 // cityRef so they always operate on the latest city data without being recreated.
 //
 const DragCityMarker = memo(function DragCityMarker({ city, icon, showLabel, labelContent }) {
-  const { setSelectedCity } = useMapStore();
+  const { setSelectedCity, drawingMode } = useMapStore();
 
   // Keep a ref to the latest city object so stable handlers can access fresh data
   const cityRef = useRef(city);
@@ -145,7 +145,7 @@ const DragCityMarker = memo(function DragCityMarker({ city, icon, showLabel, lab
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Marker position={pos} icon={icon} draggable eventHandlers={handlers}>
+    <Marker position={pos} icon={icon} draggable interactive={drawingMode !== 'measure'} eventHandlers={handlers}>
       {showLabel && labelContent}
     </Marker>
   );
