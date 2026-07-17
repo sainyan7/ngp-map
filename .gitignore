@@ -13,6 +13,9 @@ dist/
 *.log
 npm-debug.log*
 
+# Vite temp files
+vite.config.js.timestamp-*
+
 # Editor
 .vscode/
 .idea/

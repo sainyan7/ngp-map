@@ -120,7 +120,7 @@ function CityTooltip({ children }) {
 // cityRef so they always operate on the latest city data without being recreated.
 //
 const DragCityMarker = memo(function DragCityMarker({ city, icon, showLabel, labelContent }) {
-  const { setSelectedCity, drawingMode } = useMapStore();
+  const { setSelectedCity, drawingMode, pushHistory } = useMapStore();
 
   // Keep a ref to the latest city object so stable handlers can access fresh data
   const cityRef = useRef(city);
@@ -137,9 +137,14 @@ const DragCityMarker = memo(function DragCityMarker({ city, icon, showLabel, lab
     },
     dragend(e) {
       const latlng = e.target.getLatLng();
-      updateCity(cityRef.current.id, {
-        lat: Math.round(latlng.lat),
-        lng: Math.round(latlng.lng),
+      const id     = cityRef.current.id;
+      const before = { lat: cityRef.current.lat, lng: cityRef.current.lng };
+      const after  = { lat: Math.round(latlng.lat), lng: Math.round(latlng.lng) };
+      updateCity(id, after);
+      pushHistory({
+        label: '都市移動',
+        undoFn: async () => { await updateCity(id, before); },
+        redoFn: async () => { await updateCity(id, after); },
       });
     },
   }), []); // eslint-disable-line react-hooks/exhaustive-deps

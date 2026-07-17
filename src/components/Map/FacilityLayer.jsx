@@ -93,7 +93,7 @@ function makeFacilityDragIcon(facility) {
 
 // ── Draggable marker ──────────────────────────────────────────────────────────
 const DragFacilityMarker = memo(function DragFacilityMarker({ facility, showRuby, showFacilityLabel }) {
-  const { setSelectedFacility, drawingMode } = useMapStore();
+  const { setSelectedFacility, drawingMode, pushHistory } = useMapStore();
   const ref = useRef(facility);
   useEffect(() => { ref.current = facility; });
 
@@ -107,9 +107,14 @@ const DragFacilityMarker = memo(function DragFacilityMarker({ facility, showRuby
     },
     dragend(e) {
       const latlng = e.target.getLatLng();
-      updateFacility(ref.current.id, {
-        lat: Math.round(latlng.lat),
-        lng: Math.round(latlng.lng),
+      const id     = ref.current.id;
+      const before = { lat: ref.current.lat, lng: ref.current.lng };
+      const after  = { lat: Math.round(latlng.lat), lng: Math.round(latlng.lng) };
+      updateFacility(id, after);
+      pushHistory({
+        label: '施設移動',
+        undoFn: async () => { await updateFacility(id, before); },
+        redoFn: async () => { await updateFacility(id, after); },
       });
     },
   }), []); // eslint-disable-line react-hooks/exhaustive-deps

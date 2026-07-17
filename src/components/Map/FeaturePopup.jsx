@@ -32,7 +32,11 @@ const MERGE_CONFIG = {
 };
 
 export default function FeaturePopup() {
-  const { selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion, startRegionMerge, features } = useMapStore();
+  const {
+    selectedFeature, clearSelectedFeature, setEditingRegion, setAddingExclaveToRegion,
+    startRegionMerge, features,
+    regionLabelDragEnabled, setRegionLabelDragEnabled, pushHistory,
+  } = useMapStore();
   const { nickname } = useAuthStore();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({});
@@ -141,10 +145,35 @@ export default function FeaturePopup() {
                 {MERGE_CONFIG[properties.regionType].label}
               </button>
             )}
+            {isRegion && (
+              <>
+                <button
+                  onClick={() => setRegionLabelDragEnabled(!regionLabelDragEnabled)}
+                  className={`w-full rounded-lg py-1.5 text-sm font-medium transition-colors border
+                    ${regionLabelDragEnabled
+                      ? 'bg-amber-500 hover:bg-amber-600 text-black border-amber-400'
+                      : 'bg-gray-600 hover:bg-gray-500 border-gray-500'
+                    }`}
+                >
+                  {regionLabelDragEnabled ? '📍 ラベルドラッグ有効' : 'ラベル位置を移動'}
+                </button>
+                {regionLabelDragEnabled && (
+                  <p className="w-full text-xs text-amber-400 text-center -mt-1">
+                    地図上のラベルをドラッグして位置を変更
+                  </p>
+                )}
+              </>
+            )}
             {isRegion && liveFeature?.labelLatLng && (
               <button
                 onClick={async () => {
+                  const before = { ...liveFeature.labelLatLng };
                   await updateFeature(id, { labelLatLng: null });
+                  pushHistory({
+                    label: 'ラベル位置リセット',
+                    undoFn: async () => { await updateFeature(id, { labelLatLng: before }); },
+                    redoFn: async () => { await updateFeature(id, { labelLatLng: null }); },
+                  });
                   clearSelectedFeature();
                 }}
                 className="w-full bg-gray-600 hover:bg-gray-500 rounded-lg py-1.5 text-sm"

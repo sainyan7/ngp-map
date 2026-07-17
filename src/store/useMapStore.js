@@ -45,8 +45,12 @@ const useMapStore = create((set, get) => ({
 
   // ── Selected feature (for FeaturePopup) ───────────────────────────────────
   selectedFeature: null,
-  setSelectedFeature: (feature) => set({ selectedFeature: feature, selectedCity: null, selectedPlaceName: null }),
-  clearSelectedFeature: () => set({ selectedFeature: null }),
+  setSelectedFeature: (feature) => set({ selectedFeature: feature, selectedCity: null, selectedPlaceName: null, regionLabelDragEnabled: false }),
+  clearSelectedFeature: () => set({ selectedFeature: null, regionLabelDragEnabled: false }),
+
+  // ── Region label drag mode (must be explicitly enabled in FeaturePopup) ────
+  regionLabelDragEnabled: false,
+  setRegionLabelDragEnabled: (enabled) => set({ regionLabelDragEnabled: enabled }),
 
   // ── Selected city (for CityEditPopup) ─────────────────────────────────────
   selectedCity: null,

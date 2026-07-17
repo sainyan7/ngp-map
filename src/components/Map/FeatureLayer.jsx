@@ -126,8 +126,9 @@ function getEdgeSegments(positions, sharedEdgeSet) {
 //   React-Leaflet calls setIcon → icon DOM recreated → drag listeners detached.
 //   Fix: useMemo inside this component with stable deps.
 function RegionLabel({
-  feature, labelPos, name, labelFontSize, labelOpacity, regionColor, regionMergeMode, onRegionClick,
+  feature, labelPos, name, labelFontSize, labelOpacity, regionColor, draggable, onRegionClick,
 }) {
+  const pushHistory = useMapStore((s) => s.pushHistory);
   const [savedPos, setSavedPos] = useState(null);
   const isDraggingRef = useRef(false);
 
@@ -146,7 +147,7 @@ function RegionLabel({
     html: `<div style="
       width:${boxW}px;height:${boxH}px;
       display:flex;align-items:center;justify-content:center;
-      cursor:${regionMergeMode ? 'default' : 'grab'};
+      cursor:${draggable ? 'grab' : 'pointer'};
       user-select:none;
       opacity:${labelOpacity.toFixed(2)};
     "><span style="
@@ -157,7 +158,7 @@ function RegionLabel({
     ">${name}</span></div>`,
     iconSize: [boxW, boxH],
     iconAnchor: [boxW / 2, boxH / 2],
-  }), [name, labelFontSize, labelOpacity, regionColor, regionMergeMode, boxW, boxH]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [name, labelFontSize, labelOpacity, regionColor, draggable, boxW, boxH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Callback ref: patch the Leaflet marker instance once on mount.
   // During drag, block setLatLng calls that come from React-Leaflet's prop
@@ -178,7 +179,7 @@ function RegionLabel({
       ref={markerRef}
       position={pos}
       icon={icon}
-      draggable={!regionMergeMode}
+      draggable={draggable}
       eventHandlers={{
         click: onRegionClick,
         dragstart: () => { isDraggingRef.current = true; },
@@ -186,7 +187,14 @@ function RegionLabel({
           isDraggingRef.current = false;
           const ll = e.target.getLatLng();
           setSavedPos([ll.lat, ll.lng]); // Prevent snap-back while Firestore confirms
-          updateFeature(feature.id, { labelLatLng: { lat: ll.lat, lng: ll.lng } });
+          const before = feature.labelLatLng ? { ...feature.labelLatLng } : null;
+          const after  = { lat: ll.lat, lng: ll.lng };
+          updateFeature(feature.id, { labelLatLng: after });
+          pushHistory({
+            label: 'ラベル移動',
+            undoFn: async () => { await updateFeature(feature.id, { labelLatLng: before }); },
+            redoFn: async () => { await updateFeature(feature.id, { labelLatLng: after }); },
+          });
         },
       }}
     />
@@ -208,6 +216,7 @@ export default function FeatureLayer() {
     assigningRegionToPlaceName, commitRegionIdForPlaceName,
     placeNames,
     pickingExistingRegion, commitPickedPolygon,
+    drawingMode, regionLabelDragEnabled,
   } = useMapStore();
 
   // Font size scales linearly with zoom (Simple CRS: ~-5 at full view, 0+ when zoomed in)
@@ -319,6 +328,9 @@ export default function FeatureLayer() {
 
           // Click behaviour depends on mode
           const onRegionClick = (e) => {
+            // In drawing / measure / placement modes, let the click pass through
+            // to the map so points can be placed over existing regions.
+            if (!regionMergeMode && drawingMode !== 'select') return;
             e.originalEvent?.stopPropagation?.();
             // Note: assigningRegionToPlaceName is now handled per-polygon in handlePolyClick
             // so that we can pass the specific polygon index (exclave-level linking).
@@ -351,16 +363,17 @@ export default function FeatureLayer() {
                 // Per-polygon click: in pick mode commit this polygon's positions;
                 // in place-name assignment mode commit region ID + polygon index.
               const handlePolyClick = (e) => {
-                e.originalEvent?.stopPropagation?.();
                 if (pickingExistingRegion) {
+                  e.originalEvent?.stopPropagation?.();
                   commitPickedPolygon(positions);
                   return;
                 }
                 if (assigningRegionToPlaceName) {
+                  e.originalEvent?.stopPropagation?.();
                   commitRegionIdForPlaceName(id, idx); // pass polygon index for exclave-level linking
                   return;
                 }
-                onRegionClick(e);
+                onRegionClick(e); // pass-through / stopPropagation decided there
               };
 
               return (
@@ -408,7 +421,7 @@ export default function FeatureLayer() {
                   labelFontSize={labelFontSize}
                   labelOpacity={labelOpacity}
                   regionColor={regionColor}
-                  regionMergeMode={regionMergeMode}
+                  draggable={!regionMergeMode && regionLabelDragEnabled && isSelected}
                   onRegionClick={onRegionClick}
                 />
               )}

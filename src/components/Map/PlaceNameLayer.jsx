@@ -200,7 +200,7 @@ const DRAG_ICON = L.divIcon({
 
 // ── Draggable marker ──────────────────────────────────────────────────────────
 const DragPlaceNameMarker = memo(function DragPlaceNameMarker({ pn }) {
-  const { setSelectedPlaceName } = useMapStore();
+  const { setSelectedPlaceName, pushHistory } = useMapStore();
   const pnRef = useRef(pn);
   useEffect(() => { pnRef.current = pn; });
 
@@ -213,9 +213,14 @@ const DragPlaceNameMarker = memo(function DragPlaceNameMarker({ pn }) {
     },
     dragend(e) {
       const latlng = e.target.getLatLng();
-      updatePlaceName(pnRef.current.id, {
-        lat: Math.round(latlng.lat),
-        lng: Math.round(latlng.lng),
+      const id     = pnRef.current.id;
+      const before = { lat: pnRef.current.lat, lng: pnRef.current.lng };
+      const after  = { lat: Math.round(latlng.lat), lng: Math.round(latlng.lng) };
+      updatePlaceName(id, after);
+      pushHistory({
+        label: '地名移動',
+        undoFn: async () => { await updatePlaceName(id, before); },
+        redoFn: async () => { await updatePlaceName(id, after); },
       });
     },
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
