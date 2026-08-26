@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NGP地図">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2A7CB0"/>
+      <stop offset="1" stop-color="#134E79"/>
+    </linearGradient>
+    <clipPath id="mainlandClip">
+      <path transform="translate(-0.76 0.92) scale(1.05)"
+            d="M28 8.2 L31 4.9 L37 4 L44 4.9 L50 4 L52 18.6 L50 25.2 L53.5 35.5 L53 43
+               L49 48.6 L43 51.5 L38 51.9 L35.5 55.2 L33.5 52.5 L34 47.7 L32.5 42.1
+               L33.5 35.5 L32 28 L33 22.3 L30.5 18.6 L31.5 13.9 L29 12 Z"/>
+    </clipPath>
+  </defs>
+
+  <rect width="64" height="64" rx="13" fill="url(#sea)"/>
+
+  <g transform="translate(-0.76 0.92) scale(1.05)">
+    <!-- Mainland: tall continent, narrow west waist, bulging south-east -->
+    <path d="M28 8.2 L31 4.9 L37 4 L44 4.9 L50 4 L52 18.6 L50 25.2 L53.5 35.5 L53 43
+             L49 48.6 L43 51.5 L38 51.9 L35.5 55.2 L33.5 52.5 L34 47.7 L32.5 42.1
+             L33.5 35.5 L32 28 L33 22.3 L30.5 18.6 L31.5 13.9 L29 12 Z"
+          fill="#93D178"/>
+
+    <!-- South-eastern highlands -->
+    <path d="M41 33.5 L47.5 32 L53.4 36.5 L52.9 43.2 L48.8 48.4 L43.2 51.2 L40.2 46.5 L41 39.5 Z"
+          fill="#D49A55" clip-path="url(#mainlandClip)"/>
+
+    <!-- Western archipelago -->
+    <path d="M15.47 25.15 L18.92 27.45 L17.77 31.48 L20.88 35.5 L19.27 39.53 L20.65 43.55
+             L16.62 46.2 L12.83 44.7 L11.22 40.1 L13.17 36.08 L10.06 32.05 L12.37 27.45 Z"
+          fill="#93D178"/>
+    <ellipse cx="13.2" cy="50.5" rx="3.6" ry="4.2" fill="#93D178"/>
+    <circle cx="20.5" cy="21.5" r="1.7" fill="#93D178"/>
+  </g>
+
+  <!-- Mountain arc — detail for large renders only; omitted below 96px in the raster icons -->
+  <g transform="translate(-0.76 0.92) scale(1.05)" clip-path="url(#mainlandClip)">
+    <path d="M44 34.8 L48 36 L50.8 39 L51.4 43 L50 46.8 L46.6 50 L44.6 48.2 L47.4 45.6
+             L48.6 42.8 L48.2 39.8 L46.2 37.8 L43.2 37 Z"
+          fill="#A9682F" opacity="0.9"/>
+  </g>
+</svg>
