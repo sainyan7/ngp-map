@@ -1,0 +1,18 @@
+{
+  "name": "NGP地図",
+  "short_name": "NGP地図",
+  "description": "架空国家プロジェクトの地図。州・地方の領域、都市、施設、地名を共同編集できます。",
+  "lang": "ja",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "icons": [
+    { "src": "favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "favicon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "favicon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
